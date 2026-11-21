@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -11,6 +12,7 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.Gravity
 import android.view.TextureView
 import android.view.View
@@ -86,6 +88,8 @@ internal class LiveCoachActivity : Activity() {
     private var interrupted = false
     private var foreground = false
     private var pausedMic = false
+    private var inputObserved = false
+    private var outputObserved = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -271,7 +275,7 @@ internal class LiveCoachActivity : Activity() {
         scope.launch {
             try {
                 withTimeout(5000) {
-                    connected.sendTextRealtime("The user moved to step ${step + 1}: ${steps()[step]}. Guide this step.")
+                    connected.send("The user moved to step ${step + 1}: ${steps()[step]}. Guide this step.", turnComplete = true)
                 }
             } catch (_: TimeoutCancellationException) {
                 interruptCall()
@@ -331,8 +335,9 @@ internal class LiveCoachActivity : Activity() {
                 session = connected
                 startAudio(connected)
                 status.text = getString(R.string.live_connected)
+                qaEvent("transport-connected")
                 withTimeout(5000) {
-                    connected.sendTextRealtime("Start with a short greeting and the saved step; then wait for my voice question.")
+                    connected.send("Start with a short greeting and the saved step; then wait for my voice question.", turnComplete = true)
                 }
                 watchConnection(connected)
             } catch (error: TimeoutCancellationException) {
@@ -356,11 +361,21 @@ internal class LiveCoachActivity : Activity() {
     private suspend fun startAudio(connected: LiveSession) {
         check(foreground && allowed(Manifest.permission.RECORD_AUDIO))
         connected.startAudioConversation(liveAudioConversationConfig {
-            transcriptHandler = { _, output ->
+            transcriptHandler = { input, output ->
                 scope.launch {
-                    if (session === connected && output != null && !interrupted && !paused) {
-                        caption.text = output.text.orEmpty().take(400)
-                        caption.visibility = if (caption.text.isBlank()) View.GONE else View.VISIBLE
+                    if (session === connected && !interrupted && !paused) {
+                        if (!inputObserved && !input?.text.isNullOrBlank()) {
+                            inputObserved = true
+                            qaEvent("input-transcribed")
+                        }
+                        if (output != null) {
+                            caption.text = output.text.orEmpty().take(400)
+                            caption.visibility = if (caption.text.isBlank()) View.GONE else View.VISIBLE
+                            if (!outputObserved && caption.text.isNotBlank()) {
+                                outputObserved = true
+                                qaEvent("output-transcribed")
+                            }
+                        }
                     }
                 }
             }
@@ -426,11 +441,11 @@ internal class LiveCoachActivity : Activity() {
                 if (restoreAudio) startAudio(connected)
                 paused = false
                 interrupted = false
-                if (restoreAudio) withTimeout(5000) {
-                    connected.sendTextRealtime("Continue from the user's saved step ${step + 1}: ${steps()[step]}.")
-                }
                 status.text = getString(R.string.live_camera_remains_off)
                 watchConnection(connected)
+                if (reconnect && restoreAudio) withTimeout(5000) {
+                    connected.send("Continue from the user's saved step ${step + 1}: ${steps()[step]}.", turnComplete = true)
+                }
             } catch (error: TimeoutCancellationException) {
                 endSession()
                 status.text = getString(R.string.live_resume_timeout)
@@ -472,6 +487,7 @@ internal class LiveCoachActivity : Activity() {
             onReady = {
                 placeholder.visibility = View.GONE
                 frames = scope.launch {
+                    var firstFrameSent = false
                     while (isActive && canStream()) {
                         delay(1000)
                         if (!canStream() || !allowed(Manifest.permission.CAMERA)) break
@@ -489,6 +505,10 @@ internal class LiveCoachActivity : Activity() {
                         try {
                             if (canStream() && camera != null && session === connected && jpeg.isNotEmpty()) {
                                 withTimeout(5000) { connected.sendVideoRealtime(InlineData(jpeg, "image/jpeg")) }
+                                if (!firstFrameSent) {
+                                    firstFrameSent = true
+                                    qaEvent("camera-frame-sent")
+                                }
                             }
                         } catch (_: TimeoutCancellationException) {
                             interruptCall()
@@ -522,6 +542,12 @@ internal class LiveCoachActivity : Activity() {
 
     private fun canStream() = foreground && session != null && !paused && !interrupted && consent.isChecked
     private fun allowed(permission: String) = checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
+
+    private fun qaEvent(event: String) {
+        if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+            Log.i("VieraLiveQA", "${if (fitness) "fitness" else "cooking"}: $event")
+        }
+    }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, results: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, results)
@@ -579,6 +605,8 @@ internal class LiveCoachActivity : Activity() {
         }
         paused = false
         interrupted = false
+        inputObserved = false
+        outputObserved = false
         caption.text = ""
         caption.visibility = View.GONE
     }

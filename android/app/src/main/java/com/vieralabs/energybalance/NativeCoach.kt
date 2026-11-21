@@ -1,6 +1,7 @@
 package com.vieralabs.energybalance
 
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.SystemClock
@@ -71,6 +72,9 @@ internal class NativeCoach(private val context: Context) {
                 modelName = LIVE_MODEL,
                 generationConfig = liveGenerationConfig {
                     responseModality = ResponseModality.AUDIO
+                    if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+                        inputAudioTranscription = AudioTranscriptionConfig()
+                    }
                     outputAudioTranscription = AudioTranscriptionConfig()
                     contextWindowCompression = ContextWindowCompressionConfig()
                     maxOutputTokens = 512
