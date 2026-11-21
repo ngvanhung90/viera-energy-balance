@@ -17,7 +17,7 @@ Open `http://127.0.0.1:4173`. For hosting, serve `public/` on HTTPS. After the f
 
 The Android app lives in `android/` and packages the same UI and recipe content. It uses the native Firebase Android SDK from `NativeCoach.kt` via an origin-scoped WebView message channel. The HTML served in an ordinary phone browser uses the web adapter instead.
 
-The source targets API 35, compiles with Android SDK 36 and Build Tools 35.0.0, and uses JDK 17, Gradle 8.13, Android Gradle Plugin 8.13.2 and Kotlin 2.2.21. Point your local environment to an installed SDK and use the approved Android build producer for your machine. With those dependencies and an authorized build environment, run `gradle :app:assembleDebug` from `android/`. This checkout ships Android source pending the first admitted APK build.
+The source targets API 35, compiles with Android SDK 36 and Build Tools 35.0.0, and uses JDK 17, Gradle 8.13, Android Gradle Plugin 8.13.2, Kotlin 2.4.21 and D8/R8 9.1.29. The on-device SDK pulls in ML Kit classes with Kotlin 2.4 metadata. Point your local environment to an installed SDK and use the approved Android build producer for your machine. With those dependencies and an authorized build environment, run `gradle :app:assembleDebug` from `android/`.
 
 ## Set up a zero-spend Firebase project
 

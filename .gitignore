@@ -3,6 +3,7 @@ android/local.properties
 android/app/google-services.json
 android/app/attestation/
 android/.gradle/
+android/.kotlin/
 android/build/
 android/app/build/
 **/.env
