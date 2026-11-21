@@ -21,10 +21,12 @@ export function activityCalories(workout, weight = 70) {
   return Math.round(workout.met * 3.5 * weight / 200 * workout.minutes / 5) * 5;
 }
 
-export function mealMatches({ target, cuisine, search = '', favoritesOnly = false }, profile) {
+export function mealMatches({ target, cuisine, search = '', favoritesOnly = false }, profile, display = value => value) {
   const words = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
   return recipes.filter(recipe => {
-    const searchable = [recipe.name, recipe.origin, recipe.cuisine, ...recipe.ingredients.map(item => item.name)]
+    const localized = display(recipe);
+    const searchable = [recipe.name, recipe.origin, recipe.cuisine, ...recipe.ingredients.map(item => item.name),
+      localized.name, ...localized.ingredients.map(item => item.name)]
       .join(' ').toLowerCase();
     return (cuisine === 'Any' || recipe.cuisine === cuisine)
       && (!favoritesOnly || profile.favorites.includes(recipe.id))

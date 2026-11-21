@@ -7,6 +7,7 @@ const root = new URL('./public/', import.meta.url);
 const files = new Set([
   'index.html', 'app.css', 'sw.js', 'manifest.webmanifest', 'firebase-config.json',
   'src/main.js', 'src/catalog.js', 'src/planner.js', 'src/storage.js', 'src/ai.js',
+  'src/locales.js', 'src/catalog-locales.js',
   'vendor/firebase-app.js', 'vendor/firebase-app-check.js', 'vendor/firebase-ai.js',
   'assets/icon.png', 'assets/icon-large.png', 'assets/lemongrass.webp', 'assets/pasta.webp',
   'assets/soba.webp', 'assets/salmon.webp', 'assets/rolls.webp', 'assets/chickpea.webp'

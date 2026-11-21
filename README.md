@@ -24,6 +24,12 @@ The start button requires per-call consent. The microphone requires Android perm
 
 The native integration calls Firebase AI Logic `liveModel` through Gemini Developer API using `gemini-3.1-flash-live-preview`. Enable `liveFreeTierVerified` in the private Firebase config only after checking Live quota, App Check enforcement and Spark without billing for `viera-energy-balance`. The Live SDK session supports a user-initiated resume attempt. If the session cannot resume, the app asks the user to start a new call. Live QA requires a real spoken follow-up and an audible response based on a consented camera frame for each coach. The Live call is a cloud feature. Verify the planner's `IN_CLOUD` and `ON_DEVICE` results independently. [Firebase Live](https://firebase.google.com/docs/ai-logic/live-api) · [Android quickstart](https://github.com/firebase/quickstart-android/tree/master/firebase-ai/app/src/main/java/com/google/firebase/quickstart/ai/feature/live)
 
+### Language and call progress
+
+Viera follows the phone's preferred supported language. It offers English, Vietnamese, Spanish and French, including the mobile navigation, the recipe names, ingredients and instructions, routines, and the native Live screen. English is the fallback. Android 13 and later also let you choose Viera's language in system app settings. Live starts with the Android app language and can follow the user's spoken language when requested. Map listings supplied by Viera are sample Ho Chi Minh City listings.
+
+The Live screen shows the selected recipe or activity and its current step. Use **Next step** or **Previous step** to change it. Viera saves the step number locally against the recipe ID or the selected activity. Returning after a disconnect or starting a new call uses that step without storing captions, recordings, or a remote session handle. A successful SDK resume can also preserve server-side context. When Live is unavailable, the setup screen still shows the saved step and hides the call start button.
+
 ## Run the web app
 
 Use Node.js 22 or newer. The app has no package install step.

@@ -2,14 +2,18 @@ import { recipes, workouts, markets } from './catalog.js';
 import { activityCalories, calories, habitPlan, mapsUrl, mealMatches, planOptions, preferences, scenarios } from './planner.js';
 import { freshState, readState, saveState, servingOptions } from './storage.js';
 import { checkDevice, cloudConfigured, connectionState, generatePlan, loadConfig } from './ai.js';
+import { language, localize, t } from './locales.js';
+import { displayActivity, displayMeal } from './catalog-locales.js';
 
 const byId = id => document.getElementById(id);
 const dialog = byId('details-dialog');
 const nativeLive = typeof window.VieraNative?.postMessage === 'function';
 const liveLabel = {
-  cooking: navigator.language.startsWith('vi') ? 'Gọi Gemini hướng dẫn nấu' : 'Call Gemini to cook',
-  fitness: navigator.language.startsWith('vi') ? 'Gọi Gemini hướng dẫn tập' : 'Call Gemini to work out'
+  cooking: t('Call Gemini to cook'),
+  fitness: t('Call Gemini to work out')
 };
+const mealCopy = item => displayMeal(item, language);
+const activityCopy = item => displayActivity(item, language);
 const openImage = recipe => `./assets/${recipe.id}.webp`;
 const labels = {
   device: 'Gemini Nano · on-device', cloud: 'Gemini Cloud · Firebase AI Logic',
@@ -55,25 +59,27 @@ function favoriteButton(id, name, active, action) {
 }
 
 function renderMeals() {
-  const matches = mealMatches(filters(), state.profile);
-  byId('recipe-count').textContent = `${matches.length} ${matches.length === 1 ? 'recipe' : 'recipes'}`;
-  byId('recipe-grid').innerHTML = matches.map(recipe => `
+  const matches = mealMatches(filters(), state.profile, mealCopy);
+  byId('recipe-count').textContent = `${matches.length} ${t(matches.length === 1 ? 'recipe' : 'recipes')}`;
+  byId('recipe-grid').innerHTML = matches.map(mealCopy).map(recipe => `
     <article class="recipe-card">
       <div class="card-picture"><img src="${openImage(recipe)}" alt="" loading="lazy">${favoriteButton(recipe.id, recipe.name, state.profile.favorites.includes(recipe.id), 'like')}</div>
       <div class="card-body"><p class="kicker">${recipe.origin}</p><h3>${recipe.name}</h3>
-      <p class="metric"><strong>≈ ${calories(recipe)} kcal</strong> · ${recipe.minutes} min</p>
+      <p class="metric"><strong>≈ ${calories(recipe)} kcal</strong> · ${recipe.minutes} ${t('min')}</p>
       <button class="text-button" data-recipe="${recipe.id}">View recipe</button></div>
     </article>`).join('') || '<p class="empty">No recipes match these filters. Try another ingredient or cuisine.</p>';
+  localize(byId('recipe-grid'));
 }
 
 function renderActivities() {
-  byId('activity-grid').innerHTML = workouts.map(workout => `
+  byId('activity-grid').innerHTML = workouts.map(activityCopy).map(workout => `
     <article class="activity-card">
       <div class="activity-head"><p class="kicker">${workout.intensity}</p>
       ${favoriteButton(workout.id, workout.name, state.profile.favoriteWorkouts.includes(workout.id), 'like-workout')}</div>
-      <h3>${workout.name}</h3><p class="metric">${workout.minutes} min · ≈ ${activityCalories(workout)} kcal</p>
+      <h3>${workout.name}</h3><p class="metric">${workout.minutes} ${t('min')} · ≈ ${activityCalories(workout)} kcal</p>
       <button class="text-button" data-workout="${workout.id}">See routine</button>
     </article>`).join('');
+  localize(byId('activity-grid'));
 }
 
 function liveButton(mode, workout = '') {
@@ -89,7 +95,12 @@ function openLive(mode, workout) {
       selectedRecipe.steps.map(([title, instruction]) => `${title}: ${instruction}`).join(' ')].join('. ')
     : workout;
   window.VieraNative.postMessage(JSON.stringify({
-    id: 'open-live', operation: 'open-live', mode, context
+    id: 'open-live', operation: 'open-live', mode, context,
+    ...(mode === 'cooking' && {
+      recipeId: selectedRecipe.id,
+      subject: selectedRecipe.name,
+      steps: selectedRecipe.steps.map(([title]) => title)
+    })
   }));
 }
 
@@ -114,8 +125,8 @@ function renderResult(result) {
       <span class="source">${labels[source]}</span>
       <h3>${headline}</h3>
       ${explanations[focus] ? `<p class="hint">${explanations[focus]}</p>` : ''}
-      <button class="plan-item" data-recipe="${meal.id}" data-portion="${portion}"><strong>${meal.name}</strong><small>${portion} × serving · ≈ ${calories(meal, portion)} kcal</small></button>
-      <button class="plan-item" data-workout="${workout.id}"><strong>${workout.name}</strong><small>${workout.minutes} min · ${workout.intensity}</small></button>
+      <button class="plan-item" data-recipe="${meal.id}" data-portion="${portion}"><strong>${mealCopy(meal).name}</strong><small>${portion} × ${t('serving')} · ≈ ${calories(meal, portion)} kcal</small></button>
+      <button class="plan-item" data-workout="${workout.id}"><strong>${activityCopy(workout).name}</strong><small>${workout.minutes} ${t('min')} · ${t(workout.intensity)}</small></button>
       ${saved ? '' : '<button type="button" class="button primary" data-save-draft>Save this pairing</button>'}
     </div>`;
   const metadata = [['Source', labels[source]]];
@@ -132,6 +143,8 @@ function renderResult(result) {
     return [term, description];
   });
   byId('run-metadata').replaceChildren(...nodes);
+  localize(byId('plan-result'));
+  localize(byId('run-metadata'));
 }
 
 function setDeviceLabel() {
@@ -144,18 +157,18 @@ function setDeviceLabel() {
     unknown: 'Gemini Nano · the availability check did not complete.',
     unavailable: 'Gemini Nano · no supported model is available on this device.'
   }[deviceStatus];
-  byId('device-state').textContent = device ?? 'Checking Gemini Nano…';
+  byId('device-state').textContent = t(device ?? 'Checking Gemini Nano…');
   const configured = cloudConfigured();
   const online = connectionState();
-  byId('cloud-state').textContent = !configured
+  byId('cloud-state').textContent = t(!configured
     ? 'Gemini Cloud · Firebase project is not configured.'
     : online === false ? 'Gemini Cloud · waiting for an internet connection.'
-      : 'Gemini Cloud · configured. Consent is required for each session.';
+      : 'Gemini Cloud · configured. Consent is required for each session.');
 }
 
 function toggleNetwork() {
   const online = connectionState();
-  byId('network-label').textContent = online === null ? 'Checking connection…' : online ? 'Online' : 'Offline';
+  byId('network-label').textContent = t(online === null ? 'Checking connection…' : online ? 'Online' : 'Offline');
   document.querySelector('.network').classList.toggle('offline', online !== true);
 }
 
@@ -171,9 +184,10 @@ function renderSelection() {
   panel.hidden = !manual;
   panel.innerHTML = manual ? `
     <h3>Your selections</h3>
-    <p>${manual.meal ? `${manual.meal.name} · ${manual.servings} × serving · ≈ ${calories(manual.meal, manual.servings)} kcal` : 'Choose a recipe from Meals.'}</p>
-    <p>${manual.workout ? `${manual.workout.name} · ${manual.workout.minutes} min` : 'Choose an activity from Movement.'}</p>
+    <p>${manual.meal ? `${mealCopy(manual.meal).name} · ${manual.servings} × ${t('serving')} · ≈ ${calories(manual.meal, manual.servings)} kcal` : 'Choose a recipe from Meals.'}</p>
+    <p>${manual.workout ? `${activityCopy(manual.workout).name} · ${manual.workout.minutes} ${t('min')}` : 'Choose an activity from Movement.'}</p>
     <button type="button" class="button primary" data-save-draft ${!manual.meal || !manual.workout ? 'disabled' : ''}>Save my plan</button>` : '';
+  localize(panel);
 }
 
 function renderSaved() {
@@ -191,7 +205,7 @@ function renderSaved() {
 function saveDraft() {
   if (busy || !draft?.meal || !draft?.workout) return;
   state.plan = { meal: draft.meal.id, workout: draft.workout.id, servings: draft.servings ?? 1, source: draft.source };
-  byId('plan-status').textContent = saveState(state) ? 'Plan saved on this device.' : 'Plan saved for this session.';
+  byId('plan-status').textContent = t(saveState(state) ? 'Plan saved on this device.' : 'Plan saved for this session.');
   draft = null;
   renderSelection();
   renderSaved();
@@ -209,13 +223,13 @@ async function buildPlan(event) {
     draft = null;
     renderSelection();
     renderSaved();
-    status.textContent = 'These filters leave no pairing. Try a different day or cuisine.';
+    status.textContent = t('These filters leave no pairing. Try a different day or cuisine.');
     return;
   }
   busy = true;
   const submit = byId('build-plan');
   submit.disabled = true;
-  status.textContent = 'Building your pairing…';
+  status.textContent = t('Building your pairing…');
   draft = null;
   renderSelection();
   renderSaved();
@@ -231,8 +245,8 @@ async function buildPlan(event) {
       : reply;
     draft = result;
     renderResult(result);
-    const fallback = result.source === 'catalog' && reasons[result.reason] ? `${reasons[result.reason]} ` : '';
-    status.textContent = `${fallback}Review and save the pairing when ready.`;
+    const fallback = result.source === 'catalog' && reasons[result.reason] ? `${t(reasons[result.reason])} ` : '';
+    status.textContent = `${fallback}${t('Review and save the pairing when ready.')}`;
   } finally {
     submit.disabled = false;
     busy = false;
@@ -253,7 +267,7 @@ function recipeDetails(recipe, portion) {
   const grocery = state.checked[recipe.id] ?? [];
   const stores = markets.filter(market => recipe.ingredients.some(item => market.aisles.includes(item.aisle)));
   return `<img class="dialog-photo" src="${openImage(recipe)}" alt="">
-    <p class="eyebrow">${recipe.origin} · ${recipe.minutes} min</p><h2 id="dialog-heading">${recipe.name}</h2>
+    <p class="eyebrow">${t(recipe.origin)} · ${recipe.minutes} ${t('min')}</p><h2 id="dialog-heading">${recipe.name}</h2>
     <p class="subtle">${recipe.description}</p>
     <div class="portion"><label for="servings">Servings</label><select id="servings"><option value="0.5">½</option><option value="1" selected>1</option><option value="1.5">1½</option><option value="2">2</option><option value="3">3</option></select>
     <strong id="portion-energy">≈ ${calories(recipe, servings)} kcal</strong></div>
@@ -270,7 +284,7 @@ function recipeDetails(recipe, portion) {
     <section class="dialog-section"><h3>Cook step by step</h3>
     ${liveButton('cooking')}
     <ol>${recipe.steps.map(([title, instruction]) => `<li><strong>${title}</strong><p>${instruction}</p></li>`).join('')}</ol>
-    <p class="hint">Technique video by ${recipe.creator}. Use the portions listed above for this version. Video needs internet.</p>
+    <p class="hint">${t('Reference video')} · ${recipe.creator}</p>
     <p><button class="button outline" data-video="${recipe.video}">Load cooking video</button>
     <a class="button outline" href="https://www.youtube.com/watch?v=${recipe.video}" target="_blank" rel="noopener noreferrer">Open on YouTube</a></p>
     <div class="video-frame"></div></section>
@@ -280,14 +294,16 @@ function recipeDetails(recipe, portion) {
 function openDetails(trigger, recipe, workout) {
   detailTrigger = trigger;
   selectedRecipe = null;
-  byId('dialog-content').innerHTML = recipe ? recipeDetails(recipe, Number(trigger.dataset.portion)) : `
-    <p class="eyebrow">${workout.intensity} · ${workout.minutes} min</p>
+  if (workout) workout = activityCopy(workout);
+  byId('dialog-content').innerHTML = recipe ? recipeDetails(mealCopy(recipe), Number(trigger.dataset.portion)) : `
+    <p class="eyebrow">${t(workout.intensity)} · ${workout.minutes} ${t('min')}</p>
     <h2 id="dialog-heading">${workout.name}</h2>
-    <p class="subtle">Approx. ${activityCalories(workout)} kcal at the demo weight of 70 kg. Pick a pace that feels comfortable.</p>
+    <p class="subtle">${t('Approx.')} ${activityCalories(workout)} kcal ${t('at the demo weight of 70 kg. Pick a pace that feels comfortable.')}</p>
     <div class="dialog-section"><h3>Follow the routine</h3>
     ${liveButton('fitness', workout.id)}<ol>
     ${workout.steps.map(step => `<li>${step}</li>`).join('')}</ol>
     <button type="button" class="button primary" data-select-workout="${workout.id}">Add movement to my plan</button></div>`;
+  localize(byId('dialog-content'));
   if (recipe) {
     byId('servings').value = String(servings);
     updateServing();
@@ -304,7 +320,7 @@ function updateProfileForm() {
   updateGoalInput();
   const plan = habitPlan(state.profile.goal, state.profile.change);
   byId('habit-plan').innerHTML = plan
-    ? `<div class="habit"><h3>${plan.title}</h3><ol>${plan.weeks.map(week => `<li>${week}</li>`).join('')}</ol></div>`
+    ? `<div class="habit"><h3>${t(plan.title).replace('a goal to review', t('a goal to review'))}</h3><ol>${plan.weeks.map(week => `<li>${t(week)}</li>`).join('')}</ol></div>`
     : '';
 }
 
@@ -321,7 +337,7 @@ function saveProfile(event) {
     intensity: byId('intensity').value, movement: byId('movement').value, goal: byId('goal').value,
     change: byId('change').disabled ? 0 : byId('change').valueAsNumber
   };
-  byId('profile-status').textContent = saveState(state) ? 'Preferences saved in this browser.' : 'Preferences updated for this session.';
+  byId('profile-status').textContent = t(saveState(state) ? 'Preferences saved in this browser.' : 'Preferences updated for this session.');
   renderMeals();
   updateProfileForm();
 }
@@ -379,7 +395,7 @@ document.addEventListener('click', event => {
     iframe.allowFullscreen = true;
     dialog.querySelector('.video-frame').replaceChildren(iframe);
   } else if (video) {
-    dialog.querySelector('.video-frame').textContent = 'Connect to the internet to load this video.';
+    dialog.querySelector('.video-frame').textContent = t('Connect to the internet to load this video.');
   }
 });
 
@@ -408,7 +424,7 @@ byId('reset-profile').addEventListener('click', () => {
   draft = null;
   renderSelection();
   byId('cloud-consent').checked = false;
-  byId('profile-status').textContent = saveState(state) ? 'Local data cleared.' : 'Session data cleared.';
+  byId('profile-status').textContent = t(saveState(state) ? 'Local data cleared.' : 'Session data cleared.');
   byId('plan-status').textContent = '';
   renderResult(null);
   renderMeals();
@@ -416,10 +432,13 @@ byId('reset-profile').addEventListener('click', () => {
   updateProfileForm();
 });
 
+document.documentElement.lang = language;
 byId('scenario').innerHTML = Object.entries(scenarios).map(([key, value]) => `<option value="${key}">${value.label}</option>`).join('');
+localize(document.body);
+document.querySelector('.photo-caption strong').textContent = mealCopy(recipes[0]).name;
 renderMeals();
 renderActivities();
-byId('live-fitness-entry').innerHTML = liveButton('fitness');
+if (nativeLive) byId('live-fitness-entry').innerHTML = liveButton('fitness');
 updateProfileForm();
 renderSelection();
 renderSaved();

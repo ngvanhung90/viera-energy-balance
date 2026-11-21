@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="live_fitness">Live Fitness Coach</string>
+    <string name="live_cooking">Live Cooking Coach</string>
+    <string name="live_model">Gemini Live · Cloud · %1$s</string>
+    <string name="live_previous_step">Previous step</string>
+    <string name="live_next_step">Next step</string>
+    <string name="live_current_step">Step %1$d/%2$d · %3$s</string>
+    <string name="live_prepare_ingredients">Prepare ingredients</string>
+    <string name="live_camera_off">Camera off</string>
+    <string name="live_camera_share">Share camera</string>
+    <string name="live_camera_turn_off">Turn camera off</string>
+    <string name="live_mute">Mute mic</string>
+    <string name="live_unmute">Enable mic</string>
+    <string name="live_pause">Pause call</string>
+    <string name="live_resume">Resume call</string>
+    <string name="live_end">End / close</string>
+    <string name="live_consent">I agree to share demo audio and camera frames I enable with Google Gemini Free tier for this call. Google may use them to improve its services. Keep faces, health details and private material out of the demo.</string>
+    <string name="live_start">Start Live call</string>
+    <string name="live_privacy">Viera stores no recordings or transcripts.</string>
+    <string name="live_your_session">Your session</string>
+    <string name="live_activity">Activity</string>
+    <string name="live_effort">Effort</string>
+    <string name="live_duration">Duration</string>
+    <string name="live_energy">Energy target (estimated)</string>
+    <string name="live_equipment">Equipment</string>
+    <string name="live_gender">Gender · optional, on device</string>
+    <string name="live_capacity">Comfort level · on device</string>
+    <string name="live_limits">Movement limits · on device</string>
+    <string name="live_save">Save workout preferences</string>
+    <string name="live_preferences_saved">Workout preferences saved on this device.</string>
+    <string name="live_fitness_note">Energy use varies by body and effort. The camera cannot verify that a movement is safe.</string>
+    <string name="live_connecting">Checking App Check and connecting…</string>
+    <string name="live_connected">Connected · Firebase AI Logic</string>
+    <string name="live_connect_timeout">Connection timed out. Try again.</string>
+    <string name="live_interrupted">Connection interrupted. Resume when ready. Your step is saved.</string>
+    <string name="live_mic_needed">Android microphone permission is required to resume audio.</string>
+    <string name="live_paused">Paused · microphone and camera are off.</string>
+    <string name="live_reconnecting">Reconnecting Live…</string>
+    <string name="live_camera_remains_off">Connected · camera is off until you share it.</string>
+    <string name="live_resume_timeout">Resume timed out. Start a new call from your saved step.</string>
+    <string name="live_resume_failed">This session could not resume. Start a new call from your saved step.</string>
+    <string name="live_camera_starting">Starting camera…</string>
+    <string name="live_camera_unavailable">Camera unavailable. You can continue with voice.</string>
+    <string name="live_mic_denied">Microphone permission was declined.</string>
+    <string name="live_camera_denied">Camera permission was declined.</string>
+    <string name="live_attestation_error">App Check could not verify this installation.</string>
+    <string name="live_offline">Gemini Live needs an internet connection.</string>
+    <string name="live_not_configured">This QA build is waiting for Gemini Live activation and App Check. You can still follow and save your steps.</string>
+    <string name="live_quota">Gemini Live reached its free quota. Try later.</string>
+    <string name="live_connect_failed">Gemini Live could not connect. Check your connection and project setup.</string>
+    <string name="live_ready">Ready · camera and microphone off</string>
+    <string name="live_ended_background">Call ended when Viera left the foreground. Your step is saved.</string>
+    <string name="live_external_browser">No browser is available</string>
+    <string-array name="live_fitness_steps">
+        <item>Warm up</item>
+        <item>Main session</item>
+        <item>Cool down</item>
+    </string-array>
+    <string-array name="live_activities">
+        <item>Walking</item>
+        <item>Yoga</item>
+        <item>Stretching</item>
+        <item>Cardio</item>
+        <item>Strength</item>
+    </string-array>
+    <string-array name="live_efforts">
+        <item>Light</item>
+        <item>Moderate</item>
+        <item>Vigorous</item>
+    </string-array>
+    <string-array name="live_durations">
+        <item>10 minutes</item>
+        <item>20 minutes</item>
+        <item>30 minutes</item>
+        <item>45 minutes</item>
+    </string-array>
+    <string-array name="live_targets">
+        <item>No target</item>
+        <item>50 kcal</item>
+        <item>100 kcal</item>
+        <item>150 kcal</item>
+        <item>200 kcal</item>
+    </string-array>
+    <string-array name="live_equipments">
+        <item>No equipment</item>
+        <item>Mat</item>
+        <item>Chair</item>
+        <item>Resistance band</item>
+        <item>Dumbbells</item>
+    </string-array>
+    <string-array name="live_genders">
+        <item>Prefer not to say</item>
+        <item>Woman</item>
+        <item>Man</item>
+        <item>Non-binary</item>
+        <item>Another identity</item>
+    </string-array>
+    <string-array name="live_capacities">
+        <item>Start gently</item>
+        <item>Comfortable with activity</item>
+        <item>Experienced</item>
+    </string-array>
+    <string-array name="live_restrictions">
+        <item>None selected</item>
+        <item>Stay seated</item>
+        <item>Avoid impact</item>
+        <item>Avoid floor work</item>
+    </string-array>
+</resources>

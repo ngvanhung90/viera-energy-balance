@@ -17,6 +17,7 @@ import android.view.View
 import android.view.WindowInsets
 import android.view.WindowManager
 import android.widget.ArrayAdapter
+import android.widget.AdapterView
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.FrameLayout
@@ -24,6 +25,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
+import android.widget.Toast
 import com.google.firebase.ai.type.InlineData
 import com.google.firebase.ai.type.LiveSession
 import com.google.firebase.ai.type.PublicPreviewAPI
@@ -66,6 +68,11 @@ internal class LiveCoachActivity : Activity() {
     private lateinit var pauseButton: Button
     private lateinit var consent: CheckBox
     private lateinit var setup: LinearLayout
+    private lateinit var stepLabel: TextView
+    private lateinit var subjectLabel: TextView
+    private lateinit var previousStep: Button
+    private lateinit var nextStep: Button
+    private var step = 0
     private val fitness by lazy { intent.getStringExtra("mode") == "fitness" }
     private val preferences by lazy { getSharedPreferences("viera-live-fitness", Context.MODE_PRIVATE) }
     private var fitnessChoices = emptyList<Spinner>()
@@ -102,6 +109,7 @@ internal class LiveCoachActivity : Activity() {
         }
         setContentView(scroll)
         buildScreen()
+        restoreProgress()
         refresh()
     }
 
@@ -110,10 +118,17 @@ internal class LiveCoachActivity : Activity() {
             letterSpacing = .15f
             typeface = Typeface.DEFAULT_BOLD
         }
-        addText(content, if (fitness) "Live Fitness Coach" else "Live Cooking Coach", 33, 8).apply {
+        addText(content, if (fitness) getString(R.string.live_fitness) else getString(R.string.live_cooking), 33, 8).apply {
             typeface = Typeface.create("serif", Typeface.NORMAL)
         }
-        addText(content, "Gemini Live · Cloud · ${NativeCoach.LIVE_MODEL}", 12, 5)
+        addText(content, getString(R.string.live_model, NativeCoach.LIVE_MODEL), 12, 5)
+        subjectLabel = addText(content, "", 19, 12).apply { typeface = Typeface.DEFAULT_BOLD }
+        stepLabel = addText(content, "", 16, 5).apply {
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+        }
+        val progressButtons = row()
+        previousStep = action(progressButtons, getString(R.string.live_previous_step)) { moveStep(-1) }
+        nextStep = action(progressButtons, getString(R.string.live_next_step)) { moveStep(1) }
         val frame = FrameLayout(this).apply {
             background = rounded(dark, 23)
             clipToOutline = true
@@ -121,7 +136,7 @@ internal class LiveCoachActivity : Activity() {
         preview = TextureView(this)
         frame.addView(preview, FrameLayout.LayoutParams(-1, -1))
         placeholder = TextView(this).apply {
-            text = "Camera off"
+            text = getString(R.string.live_camera_off)
             textSize = 18f
             gravity = Gravity.CENTER
             setTextColor(cream)
@@ -134,17 +149,17 @@ internal class LiveCoachActivity : Activity() {
         }
         caption = addText(content, "", 16, 6).apply { visibility = View.GONE }
         val media = row()
-        cameraButton = action(media, "Share camera") { cameraToggle() }
-        muteButton = action(media, "Mute mic") { audioToggle() }
+        cameraButton = action(media, getString(R.string.live_camera_share)) { cameraToggle() }
+        muteButton = action(media, getString(R.string.live_mute)) { audioToggle() }
         val controls = row()
-        pauseButton = action(controls, "Pause call") { pauseToggle() }
-        action(controls, "End / close") { finish() }
+        pauseButton = action(controls, getString(R.string.live_pause)) { pauseToggle() }
+        action(controls, getString(R.string.live_end)) { finish() }
 
         setup = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         content.addView(setup)
         if (fitness) buildFitnessForm()
         consent = CheckBox(this).apply {
-            text = "For this call, I agree to share demo audio and any camera frames I turn on with Google Gemini Free tier. Google may use them to improve its services. Use sample ingredients or demonstration movements and keep health details, faces and private material out of the call."
+            text = getString(R.string.live_consent)
             textSize = 14f
             setTextColor(dark)
             setPadding(0, dp(10), 0, dp(10))
@@ -152,38 +167,42 @@ internal class LiveCoachActivity : Activity() {
         }
         setup.addView(consent)
         joinButton = Button(this).apply {
-            text = "Start Live call"
+            text = getString(R.string.live_start)
             isAllCaps = false
             background = rounded(amber, 15)
             setTextColor(dark)
             setOnClickListener { requestToJoin() }
         }
         setup.addView(joinButton, LinearLayout.LayoutParams(-1, dp(48)))
-        addText(content, "Audio and frames are shared only for your Live call. Viera stores no recordings or transcripts.", 12, 10)
+        addText(content, getString(R.string.live_privacy), 12, 10)
     }
 
     private fun buildFitnessForm() {
-        addText(setup, "Your session", 20, 14)
+        addText(setup, getString(R.string.live_your_session), 20, 14)
         fitnessChoices = listOf(
-            picker("Activity", "activity", listOf("Walking", "Yoga", "Stretching", "Cardio", "Strength")),
-            picker("Effort", "effort", listOf("Light", "Moderate", "Vigorous")),
-            picker("Duration", "duration", listOf("10 minutes", "20 minutes", "30 minutes", "45 minutes")),
-            picker("Energy target (estimated)", "target", listOf("No target", "50 kcal", "100 kcal", "150 kcal", "200 kcal")),
-            picker("Equipment", "equipment", listOf("No equipment", "Mat", "Chair", "Resistance band", "Dumbbells")),
-            picker("Gender · optional, on device", "gender", listOf("Prefer not to say", "Woman", "Man", "Non-binary", "Another identity")),
-            picker("Comfort level · on device", "capacity", listOf("Start gently", "Comfortable with activity", "Experienced")),
-            picker("Movement limits · on device", "limits", listOf("None selected", "Stay seated", "Avoid impact", "Avoid floor work"))
+            picker(getString(R.string.live_activity), "activity", resources.getStringArray(R.array.live_activities).toList()),
+            picker(getString(R.string.live_effort), "effort", resources.getStringArray(R.array.live_efforts).toList()),
+            picker(getString(R.string.live_duration), "duration", resources.getStringArray(R.array.live_durations).toList()),
+            picker(getString(R.string.live_energy), "target", resources.getStringArray(R.array.live_targets).toList()),
+            picker(getString(R.string.live_equipment), "equipment", resources.getStringArray(R.array.live_equipments).toList()),
+            picker(getString(R.string.live_gender), "gender", resources.getStringArray(R.array.live_genders).toList()),
+            picker(getString(R.string.live_capacity), "capacity", resources.getStringArray(R.array.live_capacities).toList()),
+            picker(getString(R.string.live_limits), "limits", resources.getStringArray(R.array.live_restrictions).toList())
         )
         val button = Button(this).apply {
-            text = "Save workout preferences"
+            text = getString(R.string.live_save)
             isAllCaps = false
             setOnClickListener {
                 saveFitness()
-                status.text = "Workout preferences saved on this device."
+                Toast.makeText(this@LiveCoachActivity, R.string.live_preferences_saved, Toast.LENGTH_SHORT).show()
             }
         }
         setup.addView(button)
-        addText(setup, "Energy estimates vary by body and effort. Use the camera for conversation, not as a safety check.", 13, 4)
+        addText(setup, getString(R.string.live_fitness_note), 13, 4)
+        fitnessChoices.first().onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) = restoreProgress()
+            override fun onNothingSelected(parent: AdapterView<*>) = Unit
+        }
     }
 
     private fun picker(label: String, key: String, values: List<String>): Spinner {
@@ -215,8 +234,59 @@ internal class LiveCoachActivity : Activity() {
         }.apply()
     }
 
+    private fun steps(): List<String> = if (fitness) {
+        resources.getStringArray(R.array.live_fitness_steps).toList()
+    } else {
+        intent.getStringArrayListExtra("steps").orEmpty().filter { it.isNotBlank() }
+            .ifEmpty { listOf(getString(R.string.live_prepare_ingredients)) }
+    }
+
+    private fun progressKey(): String = if (fitness) {
+        "step:fitness:${fitnessChoices.first().selectedItemPosition}"
+    } else {
+        "step:recipe:${intent.getStringExtra("recipeId").orEmpty()}"
+    }
+
+    private fun restoreProgress() {
+        step = preferences.getInt(progressKey(), 0).coerceIn(steps().indices)
+        renderProgress()
+    }
+
+    private fun renderProgress() {
+        val plan = steps()
+        subjectLabel.text = if (fitness) fitnessChoices.first().selectedItem.toString()
+            else intent.getStringExtra("subject")?.takeIf { it.isNotBlank() }
+                ?: getString(R.string.live_cooking)
+        stepLabel.text = getString(R.string.live_current_step, step + 1, plan.size, plan[step])
+        previousStep.isEnabled = step > 0
+        nextStep.isEnabled = step < plan.lastIndex
+    }
+
+    private fun moveStep(offset: Int) {
+        step = (step + offset).coerceIn(steps().indices)
+        if (fitness) saveFitness()
+        preferences.edit().putInt(progressKey(), step).apply()
+        renderProgress()
+        val connected = session?.takeIf { canStream() && mic } ?: return
+        scope.launch {
+            try {
+                withTimeout(5000) {
+                    connected.sendTextRealtime("The user moved to step ${step + 1}: ${steps()[step]}. Guide this step.")
+                }
+            } catch (_: TimeoutCancellationException) {
+                interruptCall()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                interruptCall()
+            }
+        }
+    }
+
     private fun instruction(): String {
-        val common = "You are Viera's voice coach in a synthetic demo. Speak in the user's language. " +
+        val uiLanguage = resources.configuration.locales[0].toLanguageTag()
+        val common = "You are Viera's voice coach in a synthetic demo. Start in the app language ($uiLanguage), " +
+            "and switch to the user's spoken language if they ask. Start at saved step ${step + 1}: ${steps()[step]}. " +
             "Give one short actionable step at a time, then invite a spoken follow-up. " +
             "Use only clearly visible camera evidence. If uncertain, ask. Don't infer identity or health from appearance. " +
             "Do not ask for personal, demographic or medical information."
@@ -225,14 +295,17 @@ internal class LiveCoachActivity : Activity() {
             return "$common Guide cooking this curated recipe: $recipe. Offer substitutions and portion guidance. " +
                 "Never infer food safety by sight. For allergies or safe cooking temperatures suggest checking labels or using a thermometer."
         }
-        val values = fitnessChoices.associate { (it.tag as String) to it.selectedItem.toString() }
-        val format = when (values["limits"]) {
-            "Stay seated" -> "use a chair-based routine"
-            "Avoid impact" -> "use low-impact movements"
-            "Avoid floor work" -> "use only standing or seated movements"
+        val fields = fitnessChoices.associateBy { it.tag as String }
+        val format = when (fields["limits"]?.selectedItemPosition) {
+            1 -> "use a chair-based routine"
+            2 -> "use low-impact movements"
+            3 -> "use only standing or seated movements"
             else -> "offer low-impact alternatives"
         }
-        val effort = if (values["capacity"] == "Start gently" || values["limits"] != "None selected") "Light" else values["effort"]
+        val values = fields.mapValues { it.value.selectedItem.toString() }
+        val effort = if (fields["capacity"]?.selectedItemPosition == 0 || fields["limits"]?.selectedItemPosition != 0) {
+            getStringArrayItem(R.array.live_efforts, 0)
+        } else values["effort"]
         return "$common Guide this sample workout: ${values["activity"]}, $effort effort, ${values["duration"]}, $format. " +
             "${values["target"]} only as an approximate preference, with ${values["equipment"]}. " +
             "Include a warm-up, short rest options and a lower-effort alternative. Ask about preferred moves, without collecting health data. " +
@@ -251,20 +324,20 @@ internal class LiveCoachActivity : Activity() {
         if (!foreground || !consent.isChecked || !allowed(Manifest.permission.RECORD_AUDIO)) return
         if (fitness) saveFitness()
         connection = scope.launch(start = CoroutineStart.LAZY) {
-            status.text = "Checking App Check and connecting…"
+            status.text = getString(R.string.live_connecting)
             try {
                 val model = coach.liveModel(instruction())
                 val connected = withTimeout(15000) { model.connect(SessionResumptionConfig()) }
                 session = connected
                 startAudio(connected)
-                status.text = "Connected · Firebase AI Logic"
+                status.text = getString(R.string.live_connected)
                 withTimeout(5000) {
-                    connected.sendTextRealtime("Start with a short greeting and the first step; then wait for my voice question.")
+                    connected.sendTextRealtime("Start with a short greeting and the saved step; then wait for my voice question.")
                 }
                 watchConnection(connected)
             } catch (error: TimeoutCancellationException) {
                 endSession()
-                status.text = "Connection timed out. Try again."
+                status.text = getString(R.string.live_connect_timeout)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
@@ -312,7 +385,7 @@ internal class LiveCoachActivity : Activity() {
         stopAudio()
         interrupted = true
         paused = false
-        status.text = "Connection interrupted. Resume to reconnect, or close the call."
+        status.text = getString(R.string.live_interrupted)
         refresh()
     }
 
@@ -324,7 +397,7 @@ internal class LiveCoachActivity : Activity() {
             refresh()
         } else if (allowed(Manifest.permission.RECORD_AUDIO)) {
             restartAudio(connected, reconnect = false)
-        } else status.text = "Android microphone permission is required to resume audio."
+        } else status.text = getString(R.string.live_mic_needed)
     }
 
     private fun pauseToggle() {
@@ -337,7 +410,7 @@ internal class LiveCoachActivity : Activity() {
             stopAudio()
             stopCamera()
             paused = true
-            status.text = "Paused · microphone and camera are off."
+            status.text = getString(R.string.live_paused)
             refresh()
         }
     }
@@ -347,22 +420,25 @@ internal class LiveCoachActivity : Activity() {
         connection = scope.launch(start = CoroutineStart.LAZY) {
             try {
                 if (reconnect) {
-                    status.text = "Reconnecting Live…"
+                    status.text = getString(R.string.live_reconnecting)
                     withTimeout(12000) { connected.resumeSession() }
                 }
                 if (restoreAudio) startAudio(connected)
                 paused = false
                 interrupted = false
-                status.text = "Connected · camera is off until you share it."
+                if (restoreAudio) withTimeout(5000) {
+                    connected.sendTextRealtime("Continue from the user's saved step ${step + 1}: ${steps()[step]}.")
+                }
+                status.text = getString(R.string.live_camera_remains_off)
                 watchConnection(connected)
             } catch (error: TimeoutCancellationException) {
                 endSession()
-                status.text = "Resume timed out. Start a new call when ready."
+                status.text = getString(R.string.live_resume_timeout)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
                 endSession()
-                status.text = "The previous Live session could not resume. Start a new call when ready."
+                status.text = getString(R.string.live_resume_failed)
             } finally {
                 connection = null
                 refresh()
@@ -391,7 +467,7 @@ internal class LiveCoachActivity : Activity() {
         val connected = session ?: return
         if (!canStream() || !allowed(Manifest.permission.CAMERA)) return
         preview.alpha = 1f
-        placeholder.text = "Starting camera…"
+        placeholder.text = getString(R.string.live_camera_starting)
         camera = LiveCamera(this, preview, front = fitness,
             onReady = {
                 placeholder.visibility = View.GONE
@@ -426,7 +502,7 @@ internal class LiveCoachActivity : Activity() {
             },
             onError = {
                 stopCamera()
-                status.text = "Camera unavailable. You can continue with voice."
+                status.text = getString(R.string.live_camera_unavailable)
                 refresh()
             }
         )
@@ -440,7 +516,7 @@ internal class LiveCoachActivity : Activity() {
         camera?.close()
         camera = null
         preview.alpha = 0f
-        placeholder.text = "Camera off"
+        placeholder.text = getString(R.string.live_camera_off)
         placeholder.visibility = View.VISIBLE
     }
 
@@ -450,7 +526,7 @@ internal class LiveCoachActivity : Activity() {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, results: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, results)
         if (results.firstOrNull() != PackageManager.PERMISSION_GRANTED) {
-            status.text = if (requestCode == MIC_PERMISSION) "Microphone permission was declined." else "Camera permission was declined."
+            status.text = if (requestCode == MIC_PERMISSION) getString(R.string.live_mic_denied) else getString(R.string.live_camera_denied)
             return
         }
         when (requestCode) {
@@ -462,29 +538,33 @@ internal class LiveCoachActivity : Activity() {
     private fun failure(error: Exception): String {
         val detail = error.message.orEmpty()
         return when {
-            detail == "app-check" -> "App Check could not verify this installation."
-            detail == "offline" -> "Gemini Live needs an internet connection."
-            detail == "live-not-configured" -> "Gemini Live is not enabled for this build."
+            detail == "app-check" -> getString(R.string.live_attestation_error)
+            detail == "offline" -> getString(R.string.live_offline)
+            detail == "live-not-configured" -> getString(R.string.live_not_configured)
             Regex("429|quota|resource.exhausted", RegexOption.IGNORE_CASE).containsMatchIn(detail) ->
-                "Gemini Live reached its free quota. Try later."
-            else -> "Gemini Live could not connect. Check your connection and project setup."
+                getString(R.string.live_quota)
+            else -> getString(R.string.live_connect_failed)
         }
     }
 
     private fun refresh() {
         val connected = session != null
         setup.visibility = if (connected) View.GONE else View.VISIBLE
+        val configured = coach.liveConfigured()
         if (!connected && status.text.isBlank()) {
-            status.text = if (coach.liveConfigured()) "Ready · camera and microphone off"
-                else "Live is unavailable until the Viera Spark project and Live quota are verified."
+            status.text = if (coach.liveConfigured()) getString(R.string.live_ready)
+                else getString(R.string.live_not_configured)
         }
-        joinButton.isEnabled = coach.liveConfigured() && consent.isChecked && connection == null
+        consent.visibility = if (configured) View.VISIBLE else View.GONE
+        joinButton.visibility = consent.visibility
+        joinButton.isEnabled = configured && consent.isChecked && connection == null
+        joinButton.alpha = if (joinButton.isEnabled) 1f else .55f
         cameraButton.isEnabled = connected && !paused && !interrupted && connection == null
         muteButton.isEnabled = cameraButton.isEnabled
         pauseButton.isEnabled = connected && connection == null
-        cameraButton.text = if (camera == null) "Share camera" else "Turn camera off"
-        muteButton.text = if (mic) "Mute mic" else "Enable mic"
-        pauseButton.text = if (paused || interrupted) "Resume call" else "Pause call"
+        cameraButton.text = if (camera == null) getString(R.string.live_camera_share) else getString(R.string.live_camera_turn_off)
+        muteButton.text = if (mic) getString(R.string.live_mute) else getString(R.string.live_unmute)
+        pauseButton.text = if (paused || interrupted) getString(R.string.live_resume) else getString(R.string.live_pause)
     }
 
     private fun endSession() {
@@ -516,7 +596,7 @@ internal class LiveCoachActivity : Activity() {
         endSession()
         if (wasActive) {
             consent.isChecked = false
-            status.text = "Call ended when Viera left the foreground."
+            status.text = getString(R.string.live_ended_background)
         }
         refresh()
         super.onStop()
@@ -553,6 +633,8 @@ internal class LiveCoachActivity : Activity() {
     }
 
     private fun dp(value: Int) = (value * resources.displayMetrics.density + .5f).toInt()
+
+    private fun getStringArrayItem(array: Int, index: Int) = resources.getStringArray(array)[index]
 
     companion object {
         private const val MIC_PERMISSION = 21

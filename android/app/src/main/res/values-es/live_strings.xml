@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="live_fitness">Entrenador de ejercicio en directo</string>
+    <string name="live_cooking">Guía de cocina en directo</string>
+    <string name="live_model">Gemini Live · Nube · %1$s</string>
+    <string name="live_previous_step">Paso anterior</string>
+    <string name="live_next_step">Siguiente paso</string>
+    <string name="live_current_step">Paso %1$d/%2$d · %3$s</string>
+    <string name="live_prepare_ingredients">Prepara los ingredientes</string>
+    <string name="live_camera_off">Cámara apagada</string>
+    <string name="live_camera_share">Compartir cámara</string>
+    <string name="live_camera_turn_off">Apagar cámara</string>
+    <string name="live_mute">Silenciar micrófono</string>
+    <string name="live_unmute">Activar micrófono</string>
+    <string name="live_pause">Pausar llamada</string>
+    <string name="live_resume">Reanudar llamada</string>
+    <string name="live_end">Finalizar / cerrar</string>
+    <string name="live_consent">Acepto compartir audio de demostración e imágenes de la cámara que active con Google Gemini Free tier en esta llamada. Google puede usar el contenido para mejorar sus servicios. Evita mostrar caras o compartir datos médicos o privados.</string>
+    <string name="live_start">Iniciar llamada en directo</string>
+    <string name="live_privacy">Viera no guarda grabaciones ni transcripciones.</string>
+    <string name="live_your_session">Tu sesión</string>
+    <string name="live_activity">Actividad</string>
+    <string name="live_effort">Intensidad</string>
+    <string name="live_duration">Duración</string>
+    <string name="live_energy">Objetivo energético estimado</string>
+    <string name="live_equipment">Material</string>
+    <string name="live_gender">Género · opcional, en el dispositivo</string>
+    <string name="live_capacity">Nivel cómodo · en el dispositivo</string>
+    <string name="live_limits">Límites de movimiento · en el dispositivo</string>
+    <string name="live_save">Guardar preferencias de ejercicio</string>
+    <string name="live_preferences_saved">Preferencias de ejercicio guardadas en este dispositivo.</string>
+    <string name="live_fitness_note">El gasto energético depende de la persona y el esfuerzo. La cámara no puede verificar que un movimiento sea seguro.</string>
+    <string name="live_connecting">Verificando App Check y conectando…</string>
+    <string name="live_connected">Conectado · Firebase AI Logic</string>
+    <string name="live_connect_timeout">Se agotó el tiempo de conexión. Inténtalo de nuevo.</string>
+    <string name="live_interrupted">Se interrumpió la conexión. Reanuda cuando puedas. Tu paso está guardado.</string>
+    <string name="live_mic_needed">Android necesita permiso para reanudar el audio.</string>
+    <string name="live_paused">En pausa · micrófono y cámara apagados.</string>
+    <string name="live_reconnecting">Reconectando Gemini Live…</string>
+    <string name="live_camera_remains_off">Conectado · la cámara seguirá apagada hasta que la compartas.</string>
+    <string name="live_resume_timeout">Se agotó el tiempo de reanudación. Inicia otra llamada desde el paso guardado.</string>
+    <string name="live_resume_failed">No se pudo reanudar la sesión. Inicia otra llamada desde el paso guardado.</string>
+    <string name="live_camera_starting">Iniciando cámara…</string>
+    <string name="live_camera_unavailable">Cámara no disponible. Puedes continuar por voz.</string>
+    <string name="live_mic_denied">Se denegó el permiso del micrófono.</string>
+    <string name="live_camera_denied">Se denegó el permiso de la cámara.</string>
+    <string name="live_attestation_error">App Check no pudo verificar esta instalación.</string>
+    <string name="live_offline">Gemini Live necesita conexión a Internet.</string>
+    <string name="live_not_configured">Esta versión de prueba está a la espera de la activación de Gemini Live y App Check. Puedes consultar y guardar tus pasos.</string>
+    <string name="live_quota">Gemini Live alcanzó su cuota gratuita. Inténtalo más tarde.</string>
+    <string name="live_connect_failed">Gemini Live no pudo conectarse. Revisa la red y la configuración del proyecto.</string>
+    <string name="live_ready">Listo · cámara y micrófono apagados</string>
+    <string name="live_ended_background">La llamada terminó al pasar Viera a segundo plano. Tu paso está guardado.</string>
+    <string name="live_external_browser">No hay un navegador disponible</string>
+    <string-array name="live_fitness_steps">
+        <item>Calentamiento</item>
+        <item>Sesión principal</item>
+        <item>Vuelta a la calma</item>
+    </string-array>
+    <string-array name="live_activities">
+        <item>Caminar</item>
+        <item>Yoga</item>
+        <item>Estiramientos</item>
+        <item>Cardio</item>
+        <item>Fuerza</item>
+    </string-array>
+    <string-array name="live_efforts">
+        <item>Suave</item>
+        <item>Moderada</item>
+        <item>Intensa</item>
+    </string-array>
+    <string-array name="live_durations">
+        <item>10 minutos</item>
+        <item>20 minutos</item>
+        <item>30 minutos</item>
+        <item>45 minutos</item>
+    </string-array>
+    <string-array name="live_targets">
+        <item>Sin objetivo</item>
+        <item>50 kcal</item>
+        <item>100 kcal</item>
+        <item>150 kcal</item>
+        <item>200 kcal</item>
+    </string-array>
+    <string-array name="live_equipments">
+        <item>Sin material</item>
+        <item>Esterilla</item>
+        <item>Silla</item>
+        <item>Banda elástica</item>
+        <item>Mancuernas</item>
+    </string-array>
+    <string-array name="live_genders">
+        <item>Prefiero no decirlo</item>
+        <item>Mujer</item>
+        <item>Hombre</item>
+        <item>No binario</item>
+        <item>Otra identidad</item>
+    </string-array>
+    <string-array name="live_capacities">
+        <item>Empezar poco a poco</item>
+        <item>Me siento cómodo al moverme</item>
+        <item>Con experiencia</item>
+    </string-array>
+    <string-array name="live_restrictions">
+        <item>Sin seleccionar</item>
+        <item>Permanecer sentado</item>
+        <item>Evitar impactos</item>
+        <item>Evitar ejercicios en el suelo</item>
+    </string-array>
+</resources>

@@ -39,7 +39,8 @@ class MainActivity : Activity() {
             settings.domStorageEnabled = true
             settings.allowFileAccess = false
             settings.allowContentAccess = false
-            settings.userAgentString += " VieraAndroid/1"
+            val languageTags = resources.configuration.locales.toLanguageTags()
+            settings.userAgentString += " VieraAndroid/1 VieraLocale/$languageTags"
             webViewClient = object : WebViewClient() {
                 override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
                     loader.shouldInterceptRequest(request.url)
@@ -52,7 +53,7 @@ class MainActivity : Activity() {
                         try {
                             startActivity(Intent(Intent.ACTION_VIEW, url))
                         } catch (_: ActivityNotFoundException) {
-                            Toast.makeText(this@MainActivity, "No browser is available", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@MainActivity, R.string.live_external_browser, Toast.LENGTH_SHORT).show()
                         }
                     }
                     return true
@@ -78,7 +79,13 @@ class MainActivity : Activity() {
                     if (mode == "cooking" || mode == "fitness") {
                         startActivity(Intent(this, LiveCoachActivity::class.java)
                             .putExtra("mode", mode)
-                            .putExtra("context", payload.optString("context").take(2400)))
+                            .putExtra("context", payload.optString("context").take(2400))
+                            .putExtra("recipeId", payload.optString("recipeId").take(40))
+                            .putExtra("subject", payload.optString("subject").take(120))
+                            .putStringArrayListExtra("steps", ArrayList<String>().apply {
+                                val steps = payload.optJSONArray("steps") ?: return@apply
+                                repeat(steps.length().coerceAtMost(10)) { add(steps.optString(it).take(120)) }
+                            }))
                     }
                     return@addWebMessageListener
                 }

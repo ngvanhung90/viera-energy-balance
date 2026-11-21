@@ -1,7 +1,8 @@
-const name = 'viera-energy-shell-v3';
+const name = 'viera-energy-shell-v4';
 const shell = [
   './', './index.html', './app.css', './manifest.webmanifest', './assets/icon.png', './assets/icon-large.png',
   './src/main.js', './src/planner.js', './src/catalog.js', './src/storage.js', './src/ai.js',
+  './src/locales.js', './src/catalog-locales.js',
   './vendor/firebase-ai.js', './vendor/firebase-app.js', './vendor/firebase-app-check.js',
   './assets/lemongrass.webp', './assets/pasta.webp', './assets/soba.webp',
   './assets/salmon.webp', './assets/rolls.webp', './assets/chickpea.webp'
