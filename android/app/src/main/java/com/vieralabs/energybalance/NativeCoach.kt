@@ -8,8 +8,10 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.ai.FirebaseAI
 import com.google.firebase.ai.InferenceMode
+import com.google.firebase.ai.InferenceSource
 import com.google.firebase.ai.OnDeviceConfig
 import com.google.firebase.ai.OnDeviceModelOption
+import com.google.firebase.ai.OnDeviceModelStatus
 import com.google.firebase.ai.type.GenerativeBackend
 import com.google.firebase.ai.type.PublicPreviewAPI
 import com.google.firebase.ai.type.generationConfig
@@ -75,7 +77,12 @@ internal class NativeCoach(private val context: Context) {
         val aicore = runCatching { context.packageManager.getPackageInfo("com.google.android.aicore", 0) }.isSuccess
         if (!aicore) return "unavailable"
         val extension = device?.onDeviceExtension ?: return "unavailable"
-        return extension.checkStatus().name.lowercase()
+        return when (extension.checkStatus()) {
+            OnDeviceModelStatus.AVAILABLE -> "available"
+            OnDeviceModelStatus.DOWNLOADABLE -> "downloadable"
+            OnDeviceModelStatus.DOWNLOADING -> "downloading"
+            else -> "unavailable"
+        }
     }
 
     private suspend fun infer(branch: String, prompt: String): JSONObject {
@@ -107,9 +114,10 @@ internal class NativeCoach(private val context: Context) {
             )
         }
         val response = withTimeout(12000) { model.generateContent(prompt) }
-        val expected = if (branch == "cloud") "IN_CLOUD" else "ON_DEVICE"
-        if (response.inferenceSource.name != expected) error("unexpected-source")
-        return JSONObject().put("text", response.text).put("source", expected)
+        val expected = if (branch == "cloud") InferenceSource.IN_CLOUD else InferenceSource.ON_DEVICE
+        if (response.inferenceSource != expected) error("unexpected-source")
+        val source = if (expected == InferenceSource.IN_CLOUD) "IN_CLOUD" else "ON_DEVICE"
+        return JSONObject().put("text", response.text).put("source", source)
             .put("model", deviceName)
             .put("milliseconds", SystemClock.elapsedRealtime() - started)
     }
