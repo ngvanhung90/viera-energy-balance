@@ -9,12 +9,18 @@ import com.google.firebase.FirebaseOptions
 import com.google.firebase.ai.FirebaseAI
 import com.google.firebase.ai.InferenceMode
 import com.google.firebase.ai.InferenceSource
+import com.google.firebase.ai.LiveGenerativeModel
 import com.google.firebase.ai.OnDeviceConfig
 import com.google.firebase.ai.OnDeviceModelOption
 import com.google.firebase.ai.OnDeviceModelStatus
 import com.google.firebase.ai.type.GenerativeBackend
 import com.google.firebase.ai.type.PublicPreviewAPI
+import com.google.firebase.ai.type.AudioTranscriptionConfig
+import com.google.firebase.ai.type.ContextWindowCompressionConfig
+import com.google.firebase.ai.type.ResponseModality
+import com.google.firebase.ai.type.content
 import com.google.firebase.ai.type.generationConfig
+import com.google.firebase.ai.type.liveGenerationConfig
 import com.google.firebase.appcheck.FirebaseAppCheck
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
@@ -50,6 +56,39 @@ internal class NativeCoach(private val context: Context) {
         }
     }
     private val check by lazy { app?.let { FirebaseAppCheck.getInstance(it).also(::installAttestation) } }
+
+    fun liveConfigured(): Boolean =
+        config?.optBoolean("sparkBillingVerified") == true &&
+            config.optBoolean("liveFreeTierVerified") &&
+            app?.options?.projectId == "viera-energy-balance"
+
+    suspend fun liveModel(instruction: String): LiveGenerativeModel {
+        check(liveConfigured()) { "live-not-configured" }
+        check(online()) { "offline" }
+        requireAttestation()
+        return FirebaseAI.getInstance(requireNotNull(app), GenerativeBackend.googleAI(), true)
+            .liveModel(
+                modelName = LIVE_MODEL,
+                generationConfig = liveGenerationConfig {
+                    responseModality = ResponseModality.AUDIO
+                    outputAudioTranscription = AudioTranscriptionConfig()
+                    contextWindowCompression = ContextWindowCompressionConfig()
+                    maxOutputTokens = 512
+                },
+                systemInstruction = content { text(instruction) }
+            )
+    }
+
+    private suspend fun requireAttestation() {
+        val appCheck = check ?: error("app-check")
+        try {
+            if (withTimeout(7000) { appCheck.getAppCheckToken(false).await() }.token.isBlank()) error("app-check")
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            error("app-check")
+        }
+    }
 
     suspend fun run(payload: JSONObject): JSONObject = try {
         when (payload.optString("operation")) {
@@ -119,14 +158,7 @@ internal class NativeCoach(private val context: Context) {
             if (branch != "cloud" || config?.optBoolean("sparkBillingVerified") != true) error("cloud-not-configured")
             if (!online()) error("offline")
             if (started < quotaUntil) error("quota-cooldown")
-            val appCheck = check ?: error("app-check")
-            try {
-                if (withTimeout(7000) { appCheck.getAppCheckToken(false).await() }.token.isBlank()) error("app-check")
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                error("app-check")
-            }
+            requireAttestation()
             FirebaseAI.getInstance(firebase, GenerativeBackend.googleAI()).generativeModel(
                 modelName = cloudModel,
                 generationConfig = generationConfig { responseMimeType = "application/json"; maxOutputTokens = 128 },
@@ -149,4 +181,8 @@ internal class NativeCoach(private val context: Context) {
     }
 
     private fun failure(reason: String) = JSONObject().put("reason", reason)
+
+    companion object {
+        const val LIVE_MODEL = "gemini-3.1-flash-live-preview"
+    }
 }

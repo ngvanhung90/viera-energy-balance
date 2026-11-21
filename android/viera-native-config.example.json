@@ -1,4 +1,5 @@
 {
   "firebase": { "apiKey": "", "projectId": "", "appId": "" },
-  "sparkBillingVerified": false
+  "sparkBillingVerified": false,
+  "liveFreeTierVerified": false
 }

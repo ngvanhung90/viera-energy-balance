@@ -5,6 +5,11 @@ import { checkDevice, cloudConfigured, connectionState, generatePlan, loadConfig
 
 const byId = id => document.getElementById(id);
 const dialog = byId('details-dialog');
+const nativeLive = typeof window.VieraNative?.postMessage === 'function';
+const liveLabel = {
+  cooking: navigator.language.startsWith('vi') ? 'Gọi Gemini hướng dẫn nấu' : 'Call Gemini to cook',
+  fitness: navigator.language.startsWith('vi') ? 'Gọi Gemini hướng dẫn tập' : 'Call Gemini to work out'
+};
 const openImage = recipe => `./assets/${recipe.id}.webp`;
 const labels = {
   device: 'Gemini Nano · on-device', cloud: 'Gemini Cloud · Firebase AI Logic',
@@ -69,6 +74,23 @@ function renderActivities() {
       <h3>${workout.name}</h3><p class="metric">${workout.minutes} min · ≈ ${activityCalories(workout)} kcal</p>
       <button class="text-button" data-workout="${workout.id}">See routine</button>
     </article>`).join('');
+}
+
+function liveButton(mode, workout = '') {
+  if (!nativeLive) return '';
+  return `<button type="button" class="button primary" data-live="${mode}" data-live-workout="${workout}">${liveLabel[mode]}</button>`;
+}
+
+function openLive(mode, workout) {
+  if (!nativeLive || (mode === 'cooking' && !selectedRecipe)) return;
+  const context = mode === 'cooking'
+    ? [selectedRecipe.name, `${servings} serving(s)`,
+      selectedRecipe.ingredients.map(item => `${item.name} ${Math.round(item.grams * servings)} g`).join(', '),
+      selectedRecipe.steps.map(([title, instruction]) => `${title}: ${instruction}`).join(' ')].join('. ')
+    : workout;
+  window.VieraNative.postMessage(JSON.stringify({
+    id: 'open-live', operation: 'open-live', mode, context
+  }));
 }
 
 function renderResult(result) {
@@ -246,6 +268,7 @@ function recipeDetails(recipe, portion) {
     <a class="text-button" href="${mapsUrl('grocery store').replaceAll('&', '&amp;')}" target="_blank" rel="noopener noreferrer">Find groceries near me in Maps</a>
     </details></section>
     <section class="dialog-section"><h3>Cook step by step</h3>
+    ${liveButton('cooking')}
     <ol>${recipe.steps.map(([title, instruction]) => `<li><strong>${title}</strong><p>${instruction}</p></li>`).join('')}</ol>
     <p class="hint">Technique video by ${recipe.creator}. Use the portions listed above for this version. Video needs internet.</p>
     <p><button class="button outline" data-video="${recipe.video}">Load cooking video</button>
@@ -261,7 +284,8 @@ function openDetails(trigger, recipe, workout) {
     <p class="eyebrow">${workout.intensity} · ${workout.minutes} min</p>
     <h2 id="dialog-heading">${workout.name}</h2>
     <p class="subtle">Approx. ${activityCalories(workout)} kcal at the demo weight of 70 kg. Pick a pace that feels comfortable.</p>
-    <div class="dialog-section"><h3>Follow the routine</h3><ol>
+    <div class="dialog-section"><h3>Follow the routine</h3>
+    ${liveButton('fitness', workout.id)}<ol>
     ${workout.steps.map(step => `<li>${step}</li>`).join('')}</ol>
     <button type="button" class="button primary" data-select-workout="${workout.id}">Add movement to my plan</button></div>`;
   if (recipe) {
@@ -305,6 +329,10 @@ function saveProfile(event) {
 document.addEventListener('click', event => {
   const trigger = event.target.closest('button');
   if (!trigger) return;
+  if (trigger.dataset.live) {
+    openLive(trigger.dataset.live, trigger.dataset.liveWorkout);
+    return;
+  }
   if (trigger.hasAttribute('data-save-draft')) {
     saveDraft();
     return;
@@ -391,6 +419,7 @@ byId('reset-profile').addEventListener('click', () => {
 byId('scenario').innerHTML = Object.entries(scenarios).map(([key, value]) => `<option value="${key}">${value.label}</option>`).join('');
 renderMeals();
 renderActivities();
+byId('live-fitness-entry').innerHTML = liveButton('fitness');
 updateProfileForm();
 renderSelection();
 renderSaved();

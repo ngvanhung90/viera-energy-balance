@@ -73,6 +73,15 @@ class MainActivity : Activity() {
                     ?: return@addWebMessageListener
                 val id = payload.optString("id").takeIf { it.length in 1..32 }
                     ?: return@addWebMessageListener
+                if (payload.optString("operation") == "open-live") {
+                    val mode = payload.optString("mode")
+                    if (mode == "cooking" || mode == "fitness") {
+                        startActivity(Intent(this, LiveCoachActivity::class.java)
+                            .putExtra("mode", mode)
+                            .putExtra("context", payload.optString("context").take(2400)))
+                    }
+                    return@addWebMessageListener
+                }
                 scope.launch {
                     val result = coach.run(payload).put("id", id)
                     reply.postMessage(result.toString())

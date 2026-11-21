@@ -16,6 +16,14 @@ The source targets API 35, compiles with Android SDK 36 and Build Tools 35.0.0, 
 
 The current 0.1.1 QA APK was verified on OPPO A57 for the local catalog, saved plan and consent behavior. It has no Firebase project config. The Firebase-enabled Android review APK and both Gemini runtime results are pending. The OPPO A57 has no AICore.
 
+### Gemini Live on Android
+
+Open a recipe and choose **Call Gemini to cook**, or choose **Call Gemini to work out** from Movement. The native call screen shows the selected model, connection state, and controls for microphone, camera, pause, resume and end. The fitness setup remembers your workout selections on this device. Cooking sends the selected catalog recipe. The demo workout instruction uses activity, duration, effort, equipment, an approximate energy target and a generic movement format. The optional gender selection stays on the device. Comfort or movement-limit settings can lower the requested effort or select a format such as low-impact or chair-based. The outgoing prompt contains no demographics or medical history.
+
+The start button requires per-call consent. The microphone requires Android permission and the camera starts only after the separate **Share camera** action and Android permission. Frames are sampled in memory, approximately once a second. Leaving the call or backgrounding the app stops both inputs. Viera stores no voice, camera recordings or captions. Google may use content shared with Gemini Free tier to improve its services. Use sample ingredients and non-identifying demonstration movements for QA. [Gemini API terms](https://ai.google.dev/gemini-api/terms)
+
+The native integration calls Firebase AI Logic `liveModel` through Gemini Developer API using `gemini-3.1-flash-live-preview`. Enable `liveFreeTierVerified` in the private Firebase config only after checking Live quota, App Check enforcement and Spark without billing for `viera-energy-balance`. The Live SDK session supports a user-initiated resume attempt. If the session cannot resume, the app asks the user to start a new call. Live QA requires a real spoken follow-up and an audible response based on a consented camera frame for each coach. The Live call is a cloud feature. Verify the planner's `IN_CLOUD` and `ON_DEVICE` results independently. [Firebase Live](https://firebase.google.com/docs/ai-logic/live-api) · [Android quickstart](https://github.com/firebase/quickstart-android/tree/master/firebase-ai/app/src/main/java/com/google/firebase/quickstart/ai/feature/live)
+
 ## Run the web app
 
 Use Node.js 22 or newer. The app has no package install step.
