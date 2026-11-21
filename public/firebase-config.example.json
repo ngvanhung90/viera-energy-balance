@@ -1,0 +1,9 @@
+{
+  "firebase": {
+    "apiKey": "",
+    "projectId": "",
+    "appId": ""
+  },
+  "sparkBillingVerified": false,
+  "recaptchaEnterpriseSiteKey": ""
+}

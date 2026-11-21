@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8f8f0">
+  <meta name="description" content="Find dinner, take the grocery list with you and make room for movement.">
+  <title>Viera Energy Balance</title>
+  <link rel="icon" href="./assets/icon.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="frame top-inner">
+      <a class="brand" href="#meals" aria-label="Viera Energy Balance home"><span class="mark" aria-hidden="true">v</span><span>VIERA<small>ENERGY BALANCE</small></span></a>
+      <nav class="navigation" aria-label="Main navigation">
+        <a href="#meals">Meals</a><a href="#daily-plan">Plan</a><a href="#activity">Movement</a><a href="#preferences">Preferences</a>
+      </nav>
+      <div class="network"><span></span><span id="network-label">Local profile</span></div>
+    </div>
+  </header>
+  <main class="frame">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow">YOUR MEAL &amp; MOVEMENT COACH</p>
+        <h1 id="hero-title">Dinner that<br>fits your <em>day.</em></h1>
+        <p>Pick a dish you’ll want to make, find your ingredients, and choose movement you’ll look forward to.</p>
+        <a class="button light" href="#meals">Explore meals</a>
+      </div>
+      <div class="hero-photo">
+        <img src="./assets/lemongrass.webp" alt="Illustration of a lemongrass chicken and rice bowl with herbs">
+        <div class="photo-caption"><span>FROM THE RECIPE LIBRARY</span><strong>Lemongrass chicken bowl</strong></div>
+      </div>
+    </section>
+
+    <div class="workbench">
+      <section id="meals" aria-labelledby="meal-title">
+        <div class="section-title"><div><p class="eyebrow">THE RECIPE LIBRARY</p><h2 id="meal-title">Find your next meal</h2></div><span id="recipe-count"></span></div>
+        <form id="meal-filter" class="filter" role="search" aria-label="Find a meal">
+          <label for="dish-search">Dish or ingredient</label>
+          <input id="dish-search" type="search" placeholder="Try salmon, tofu or tomato" maxlength="80">
+          <div class="filter-row">
+            <div class="field calories-field">
+              <label for="meal-kcal">Sort by target kcal per plate</label>
+              <input id="meal-kcal" type="number" min="200" max="1000" step="5" value="500" inputmode="numeric">
+            </div>
+            <div class="field"><label for="cuisine">Cuisine</label><select id="cuisine"><option value="Any">All cuisines</option><option>Asian</option><option>European</option></select></div>
+            <label class="check favorites-only"><input type="checkbox" id="favorites-only"> Favorites</label>
+          </div>
+        </form>
+        <div class="recipe-grid" id="recipe-grid"></div>
+      </section>
+
+      <aside id="daily-plan" class="plan" aria-labelledby="plan-title">
+        <p class="eyebrow">THE DAILY PLANNER</p>
+        <h2 id="plan-title">Make a plan</h2>
+        <p class="subtle">Find a meal and a separate way to move, even when your evening changes.</p>
+        <form id="plan-form" class="plan-form">
+          <label for="scenario">What kind of day is it?</label>
+          <select id="scenario"></select>
+          <label class="check"><input type="checkbox" id="vegetarian"> Vegetarian meal</label>
+          <label for="mode">Where coaching runs</label>
+          <select id="mode"><option value="auto">On-device first</option><option value="device">On-device only</option><option value="cloud">Cloud demo only</option></select>
+          <p id="device-state" class="hint">Checking availability…</p>
+          <label class="check consent"><input type="checkbox" id="cloud-consent"> Allow Gemini cloud to use synthetic preferences and these demo filters.</label>
+          <button class="button primary" id="build-plan" type="submit">Build my plan</button>
+        </form>
+        <div id="plan-status" role="status" aria-live="polite"></div>
+        <div id="plan-result"></div>
+        <details id="run-details" hidden><summary>Execution details</summary><dl id="run-metadata"></dl></details>
+      </aside>
+    </div>
+
+    <section class="activity-section" id="activity" aria-labelledby="activity-title">
+      <p class="eyebrow">MOVE YOUR WAY</p>
+      <h2 id="activity-title">Find an activity you enjoy</h2>
+      <p class="subtle">Choose by effort and experience. Energy estimates use a 70 kg demo adult and vary by person and pace.</p>
+      <div class="activity-grid" id="activity-grid"></div>
+    </section>
+
+    <section class="profile" id="preferences" aria-labelledby="profile-title">
+      <div>
+        <p class="eyebrow">STORED IN THIS BROWSER</p>
+        <h2 id="profile-title">Make it yours</h2>
+        <p class="subtle">Save the flavors and activities you like to improve your next plan. A weight goal stays on this device.</p>
+      </div>
+      <div>
+        <form id="profile-form" class="profile-form">
+          <div class="field"><label for="preferred-cuisine">Preferred cuisine</label><select id="preferred-cuisine"><option>Any</option><option>Asian</option><option>European</option></select></div>
+          <div class="field"><label for="taste">Favorite flavors</label><select id="taste"><option>Any</option><option>Savory</option><option>Herby</option><option>Crunchy</option><option>Cozy</option></select></div>
+          <div class="field"><label for="intensity">Max comfortable effort</label><select id="intensity"><option>Gentle</option><option>Moderate</option><option>Vigorous</option></select></div>
+          <div class="field"><label for="movement">Preferred activity</label><select id="movement"><option>Any</option><option>Mobility</option><option>Walking</option><option>Cycling</option><option>Running</option></select></div>
+          <div class="field"><label for="goal">Weight goal</label><select id="goal"><option value="Maintain">Maintain</option><option value="Gain">Gain weight</option><option value="Lose">Lose weight</option></select></div>
+          <div class="field"><label for="change">Goal change (kg)</label><input id="change" type="number" min="0.5" max="5" step="0.5" inputmode="decimal" disabled></div>
+          <p class="hint wide">Adult habit planning. Review larger changes with a qualified professional.</p>
+          <div class="profile-actions wide"><button class="button primary">Save preferences</button><button type="button" class="button outline" id="reset-profile">Clear local data</button></div>
+          <p class="wide hint" id="profile-status" role="status"></p>
+        </form>
+        <div id="habit-plan"></div>
+      </div>
+    </section>
+  </main>
+  <footer class="frame page-footer"><span>Viera Energy Balance</span><span>Recipe energy is approximate · Adult wellness planning</span></footer>
+  <dialog id="details-dialog" aria-labelledby="dialog-heading">
+    <form method="dialog" class="dialog-close"><button class="icon-button" aria-label="Close details">×</button></form>
+    <div id="dialog-content"></div>
+  </dialog>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
