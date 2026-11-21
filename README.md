@@ -2,6 +2,20 @@
 
 Viera helps adults turn a dinner idea into an evening plan. Search Asian and European dishes by name or ingredient, or sort by an estimated plate-energy target. Scale servings, check off ingredients, follow the written recipe or a linked cooking video, and open a store route in Maps. Add the selected meal and a movement routine, then save the pairing on the device. The coach also offers pairings to review and save. Favorites and weight-goal habit plans stay on the device.
 
+## Android
+
+The Android app lives in `android/` and packages the same UI and recipe content. It uses the native Firebase Android SDK from `NativeCoach.kt` via an origin-scoped WebView message channel. The HTML served in an ordinary phone browser uses the web adapter instead.
+
+The source targets API 35, compiles with Android SDK 36 and Build Tools 35.0.0, and uses JDK 17, Gradle 8.13, Android Gradle Plugin 8.13.2, Kotlin 2.4.21 and D8/R8 9.1.29. The on-device SDK pulls in ML Kit classes with Kotlin 2.4 metadata. Point your local environment to an installed SDK and use the approved Android build producer for your machine. With those dependencies and an authorized build environment, run `gradle :app:assembleDebug` from `android/`.
+
+### Judge quick start
+
+1. On Android 8.0 (API 26) or newer, install the provided review APK. From **Meals**, open **Crispy tofu soba**, choose 1½ servings and check off an ingredient. Follow the written steps, select a movement routine, and tap **Save my plan**. The Ho Chi Minh City directory, route links, and technique videos are available in recipe details. Maps and video playback need a connection.
+2. In **Plan**, select **Gemini Cloud demo only**, allow the synthetic demo request for this session, and tap **Suggest a plan**. A review APK with working App Check and a verified Spark project is required. Open **Execution details** for the Gemini Cloud label and model. The SDK must return `IN_CLOUD` for this label to appear.
+3. On a supported device with AICore and the Firebase AI Logic Nano 4 Fast preview ready, select **Gemini Nano only**, leave cloud consent off, and tap **Suggest a plan**. **Execution details** shows the Gemini Nano label and model when the SDK reports `ON_DEVICE`. On an unsupported device, **Offline Rules** can still suggest a pairing.
+
+The current 0.1.1 QA APK was verified on OPPO A57 for the local catalog, saved plan and consent behavior. It has no Firebase project config. The Firebase-enabled Android review APK and both Gemini runtime results are pending. The OPPO A57 has no AICore.
+
 ## Run the web app
 
 Use Node.js 22 or newer. The app has no package install step.
@@ -11,13 +25,7 @@ npm test
 npm start
 ```
 
-Open `http://127.0.0.1:4173`. For hosting, serve `public/` on HTTPS. After the first complete load, the service worker caches the application, recipes, images and Firebase SDK modules. Cooking videos and directions use external services and need a connection. The included Ho Chi Minh City directory demonstrates navigation. Check store availability in Maps.
-
-## Android
-
-The Android app lives in `android/` and packages the same UI and recipe content. It uses the native Firebase Android SDK from `NativeCoach.kt` via an origin-scoped WebView message channel. The HTML served in an ordinary phone browser uses the web adapter instead.
-
-The source targets API 35, compiles with Android SDK 36 and Build Tools 35.0.0, and uses JDK 17, Gradle 8.13, Android Gradle Plugin 8.13.2, Kotlin 2.4.21 and D8/R8 9.1.29. The on-device SDK pulls in ML Kit classes with Kotlin 2.4 metadata. Point your local environment to an installed SDK and use the approved Android build producer for your machine. With those dependencies and an authorized build environment, run `gradle :app:assembleDebug` from `android/`.
+Open `http://127.0.0.1:4173`. For hosting, serve `public/` on HTTPS. After the first complete load, the service worker caches the application, recipes, images and Firebase SDK modules.
 
 ## Set up a zero-spend Firebase project
 
@@ -31,12 +39,16 @@ The source targets API 35, compiles with Android SDK 36 and Build Tools 35.0.0, 
 
 | Path | Reproduce with synthetic preferences | Evidence to capture |
 | --- | --- | --- |
-| On-device | Use Chrome Desktop with Gemini Nano already installed, or an Android Nano 4 test device with AICore and the applicable preview model already installed. Load the app, disable connectivity in the test environment, choose **On-device only**, build a plan. | SDK `ON_DEVICE`, resulting pair, environment/browser or AICore/model version, no Firebase AI Logic requests during the run. |
-| Cloud | On the reviewed Spark project, enable synthetic prompt sharing, choose **Cloud demo only**, build a plan. | SDK `IN_CLOUD`, selected model and returned pair, a successful Firebase AI Logic proxy request and verified App Check count. |
-| App Check | Compare a properly attested request against a clean test client without registered attestation while enforcement stays enabled. | Sanitized verified success and rejection, plus enforcement and Spark plan read-back. Keep request headers and tokens private. |
+| On-device | On an Android Nano 4 test device with AICore and the applicable Fast preview model ready, choose **Gemini Nano only** and build a plan. If a local device can be verified offline, disable connectivity in the authorized QA setup. Preserve the control connection on streamed devices. | SDK `ON_DEVICE`, resulting pair, AICore/model version, and no cloud inference during the run. |
+| Cloud | On the reviewed Spark project, enable synthetic prompt sharing, choose **Gemini Cloud demo only**, and build a plan. | SDK `IN_CLOUD`, selected model and returned pair, a successful Firebase AI Logic proxy request and verified App Check count. |
+| App Check | Keep enforcement enabled. Compare the attested APK request with one synthetic request from an isolated Firebase AI Logic SDK QA client that has no App Check provider. The APK blocks token acquisition failures locally, so its fallback alone cannot show a proxy rejection. | Sanitized verified success and server rejection, plus enforcement and Spark plan read-back. Keep request headers and tokens private. |
 | Fallback | Try an unsupported device, an offline or slow connection, and a quota rejection in a bounded test. | A clear reason and a usable catalog result for each. For quota handling use a controlled test response for client UI coverage and distinguish it from live service evidence. |
 
 The app checks model readiness before SDK initialization. It leaves model download to the permitted test environment and requires an actual recorded model result for the inference badge. The Android implementation requests the Nano 4 Fast preview and checks the reported `nano-v4` model name. The web implementation uses the official Firebase JS 13.4.0 SDK via `getAI`, `getGenerativeModel`, `initializeDeviceModel` and `generateContent`. The Android implementation uses Firebase AI Logic 18.2.0 and Firebase AI Logic On-Device 16.0.0-beta08 and calls `generateContent` natively.
+
+For Android Device Streaming, check the project-specific catalog and remaining Spark minutes before reserving a device. Confirm how its AICore Developer Preview and the model will be prepared. A model listed in the public device catalog can still require preview enrollment or a download. [Device Streaming catalog command](https://developer.android.com/tools/agents/android-cli/commands/device_remote_models) · [AICore Developer Preview](https://developers.google.com/ml-kit/genai/aicore-dev-preview)
+
+Use the debug provider only for controlled QA. For an independently usable review APK, verify a signed release on a clean installation with the supported Play Integrity settings for its distribution channel and App Check still enforced. If Firebase AI Logic replay protection is enforced on the project, the client must use limited-use tokens. [Play Integrity setup](https://firebase.google.com/docs/app-check/android/play-integrity-provider) · [App Check replay protection](https://firebase.google.com/docs/ai-logic/app-check#replay-protection)
 
 Both platforms use explicit device-only and cloud-only SDK branches so private preferences and weight goals never enter a cloud fallback. The cloud prompt uses a sample preference profile, catalog choices and the selected demo filters. The model picks a recipe and activity from an approved set and returns structured IDs. The app rejects invalid IDs or results with an unexpected execution source. Nutrition, recipe steps, instructions, locations and links come from the curated data.
 

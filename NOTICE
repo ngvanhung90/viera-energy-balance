@@ -7,10 +7,9 @@ publishers and are not redistributed here. The repository license does not cover
 the linked videos, the linked maps, or the external nutrition reference sites.
 
 public/vendor contains the Firebase JavaScript SDK 13.4.0 from the Google
-Firebase CDN. Its source is distributed under Apache-2.0, with the separately
-licensed protobuf component described in the upstream license. The vendor files
-retain their license headers. The app module import paths in the AI Logic and
-App Check bundles were made relative to support offline loading.
+Firebase CDN. The full upstream license, including third-party notices, is
+included in public/vendor/LICENSE.firebase. The AI Logic and App Check
+bundles mark the relative import change made to support offline loading.
 
 Firebase source and license: https://github.com/firebase/firebase-js-sdk
 Exact upstream license: https://github.com/firebase/firebase-js-sdk/blob/firebase%4013.4.0/LICENSE
