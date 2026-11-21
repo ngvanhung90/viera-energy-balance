@@ -48,7 +48,7 @@ class MainActivity : Activity() {
                     if (!request.isForMainFrame) return false
                     val url = request.url
                     if (url.scheme == "https" && url.host == "appassets.androidplatform.net") return false
-                    if (url.scheme == "https" && url.host in setOf("www.youtube.com", "www.google.com")) {
+                    if (url.scheme == "https" && url.host in setOf("www.youtube.com", "www.google.com", "fdc.nal.usda.gov", "pacompendium.com")) {
                         try {
                             startActivity(Intent(Intent.ACTION_VIEW, url))
                         } catch (_: ActivityNotFoundException) {

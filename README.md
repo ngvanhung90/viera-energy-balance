@@ -1,6 +1,6 @@
 # Viera Energy Balance
 
-Viera helps adults turn a dinner idea into an executable evening. Search Asian and European dishes by name or ingredient, or sort by an estimated plate-energy target. Scale servings, check off ingredients, follow the written recipe or a linked cooking video, and open a store route in Maps. Choose movement by comfortable effort and time. Favorites and weight-goal habit plans stay in the browser or app.
+Viera helps adults turn a dinner idea into an evening plan. Search Asian and European dishes by name or ingredient, or sort by an estimated plate-energy target. Scale servings, check off ingredients, follow the written recipe or a linked cooking video, and open a store route in Maps. Add the selected meal and a movement routine, then save the pairing on the device. The coach also offers pairings to review and save. Favorites and weight-goal habit plans stay on the device.
 
 ## Run the web app
 
@@ -45,7 +45,7 @@ Both platforms use explicit device-only and cloud-only SDK branches so private p
 - Ingredient energy values are rounded reference estimates. Adjust the ingredient entries for actual brands and preparation. References include [USDA FoodData Central](https://fdc.nal.usda.gov/) and [USDA safe cooking temperatures](https://ask.fsis.usda.gov/article/What-is-a-safe-internal-temperature-for-cooking-meat-and-poultry).
 - Activity energy uses MET × 3.5 × demo weight in kg ÷ 200 × minutes, rounded to 5 kcal. See the [2024 Adult Compendium of Physical Activities](https://pacompendium.com/adult-compendium/) and [CDC intensity guidance](https://www.cdc.gov/physical-activity-basics/measuring/index.html). Effort can be tuned by individual comfort and preferences. The app does not assign workouts by gender.
 - The weight-goal view is an adult habit roadmap for small changes. It does not compute a deficit, prescribe a diet, or predict when a user will reach a goal. See [CDC guidance on healthy weight](https://www.cdc.gov/healthy-weight-growth/losing-weight/).
-- Food images are generated illustrations prepared for this project. Technique videos are linked or loaded from the original YouTube creators on request and are outside this repository’s license.
+- Food images are generated illustrations prepared for this project. See [NOTICE](NOTICE) for asset and SDK provenance.
 - This source was written for #BuildHybridAI in November 2026. It uses the existing Devpost entry. The source audit located the draft receipt but did not identify earlier implementation code or a Firebase configuration for this product. No commercial Viera application code was copied.
 
 ## Upstream SDK and license

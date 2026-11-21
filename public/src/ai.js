@@ -69,13 +69,18 @@ export function cloudConfigured() {
   return config?.sparkBillingVerified === true && (Boolean(config.recaptchaEnterpriseSiteKey) || debug);
 }
 
+export function connectionState() {
+  return isAndroidApp ? nativeStatus?.online ?? null : navigator.onLine;
+}
+
 export async function checkDevice() {
   if (isAndroidApp) {
     try {
       nativeStatus = await nativeRequest('status');
       return nativeStatus.availability;
     } catch {
-      return 'unavailable';
+      nativeStatus = undefined;
+      return 'unknown';
     }
   }
   if (!globalThis.isSecureContext || typeof globalThis.LanguageModel?.availability !== 'function') return 'unavailable';
@@ -95,6 +100,8 @@ function withDeadline(promise, milliseconds) {
 }
 
 async function onDevice(prompt, availability) {
+  if (availability === 'setup-required') throw new Error('firebase-config-missing');
+  if (availability === 'unknown') throw new Error('device-check-failed');
   if (availability !== 'available') throw new Error('device-unavailable');
   if (isAndroidApp) {
     return asSdkResult(await nativeRequest('generate', { branch: 'device', prompt }));
@@ -118,8 +125,8 @@ async function onDevice(prompt, availability) {
 }
 
 async function inCloud(prompt) {
-  if (!navigator.onLine) throw new Error('offline');
   if (!cloudConfigured()) throw new Error('cloud-not-configured');
+  if (connectionState() === false) throw new Error('offline');
   if (Date.now() < quotaUntil) throw new Error('quota');
   if (isAndroidApp) return asSdkResult(await nativeRequest('generate', { branch: 'cloud', prompt }));
   if (!cloud) {
@@ -163,11 +170,12 @@ function asSdkResult(payload) {
 
 export function failureCode(error) {
   const text = [error?.message, error?.code, error?.customData?.status].join(' ');
+  if (error?.message === 'device-quota') return 'device-quota';
   if (/\b429\b|resource.exhausted|quota/i.test(text)) return 'quota';
   if (/app.check|\b403\b|permission.denied/i.test(text)) return 'app-check';
   if (/deadline|timeout|timed.out/i.test(text)) return 'deadline';
   if (/offline|network|failed to fetch/i.test(text)) return 'offline';
-  if (['firebase-config-missing', 'device-unavailable', 'cloud-not-configured', 'invalid-selection', 'unexpected-source'].includes(error?.message)) return error.message;
+  if (['firebase-config-missing', 'device-unavailable', 'device-check-failed', 'cloud-not-configured', 'invalid-selection', 'unexpected-source'].includes(error?.message)) return error.message;
   return 'service-error';
 }
 
@@ -177,6 +185,7 @@ function readResult(result, expectedSource, options) {
 }
 
 export async function generatePlan({ mode, options, profile, cloudOptions, cloudProfile, availability, allowCloud }) {
+  if (mode === 'rules') return { source: 'catalog' };
   const started = performance.now();
   let localFailure;
   if (mode !== 'cloud') {
@@ -194,8 +203,12 @@ export async function generatePlan({ mode, options, profile, cloudOptions, cloud
   if (mode !== 'device' && allowCloud && cloudOptions.mealOptions.length && cloudOptions.movementOptions.length) {
     try {
       const result = await inCloud(makePlanPrompt(cloudOptions, cloudProfile));
+      const choices = readResult(result, InferenceSource.IN_CLOUD, cloudOptions);
+      if (!options.movementOptions.some(item => item.id === choices.workout.id)) {
+        return { source: 'catalog', reason: 'cloud-over-effort', localFailure };
+      }
       return {
-        ...readResult(result, InferenceSource.IN_CLOUD, cloudOptions), source: 'cloud', reason: localFailure,
+        ...choices, source: 'cloud', reason: localFailure,
         modelName, milliseconds: Math.round(performance.now() - started)
       };
     } catch (error) {

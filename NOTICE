@@ -1,0 +1,16 @@
+Viera Energy Balance
+
+Food illustrations in public/assets are generated specifically for this project.
+The Viera app icons in that folder accompany the project.
+Third-party technique videos are linked or embedded from their original YouTube
+publishers and are not redistributed here. The repository license does not cover
+the linked videos, the linked maps, or the external nutrition reference sites.
+
+public/vendor contains the Firebase JavaScript SDK 13.4.0 from the Google
+Firebase CDN. Its source is distributed under Apache-2.0, with the separately
+licensed protobuf component described in the upstream license. The vendor files
+retain their license headers. The app module import paths in the AI Logic and
+App Check bundles were made relative to support offline loading.
+
+Firebase source and license: https://github.com/firebase/firebase-js-sdk
+Exact upstream license: https://github.com/firebase/firebase-js-sdk/blob/firebase%4013.4.0/LICENSE

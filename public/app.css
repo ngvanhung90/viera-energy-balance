@@ -80,6 +80,11 @@ input[type="checkbox"] { accent-color:var(--green); width:17px; height:17px; fle
 .plan-form .check { margin:5px 0 }
 .plan-form .consent { font-size:.82rem; font-weight:520; align-items:flex-start }
 .plan-form .button { margin-top:4px }
+.runtime-status { display:grid; gap:5px; list-style:none; padding:9px 11px; margin:0; background:#fffef9; border:1px solid var(--edge); border-radius:8px }
+#plan-selection { display:grid; gap:7px; padding:13px; margin:0 0 14px; background:var(--card); border:1px solid var(--edge); border-radius:12px }
+#plan-selection[hidden] { display:none }
+#plan-selection h3 { font-size:1.23rem }
+.result .button { margin-top:10px }
 .hint { color:var(--muted); font-size:.83rem }
 #plan-status:not(:empty) { font-size:.85rem; margin-top:12px }
 .result { margin-top:14px; padding-top:14px; border-top:1px solid #cbd7bf }

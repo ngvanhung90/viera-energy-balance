@@ -17,7 +17,7 @@
       <nav class="navigation" aria-label="Main navigation">
         <a href="#meals">Meals</a><a href="#daily-plan">Plan</a><a href="#activity">Movement</a><a href="#preferences">Preferences</a>
       </nav>
-      <div class="network"><span></span><span id="network-label">Local profile</span></div>
+      <div class="network"><span></span><span id="network-label">Checking connection…</span></div>
     </div>
   </header>
   <main class="frame">
@@ -56,15 +56,20 @@
         <p class="eyebrow">THE DAILY PLANNER</p>
         <h2 id="plan-title">Make a plan</h2>
         <p class="subtle">Find a meal and a separate way to move, even when your evening changes.</p>
+        <div id="plan-selection" aria-live="polite"></div>
         <form id="plan-form" class="plan-form">
           <label for="scenario">What kind of day is it?</label>
           <select id="scenario"></select>
           <label class="check"><input type="checkbox" id="vegetarian"> Vegetarian meal</label>
           <label for="mode">Where coaching runs</label>
-          <select id="mode"><option value="auto">On-device first</option><option value="device">On-device only</option><option value="cloud">Cloud demo only</option></select>
-          <p id="device-state" class="hint">Checking availability…</p>
-          <label class="check consent"><input type="checkbox" id="cloud-consent"> Allow Gemini cloud to use synthetic preferences and these demo filters.</label>
-          <button class="button primary" id="build-plan" type="submit">Build my plan</button>
+          <select id="mode"><option value="auto">On-device first</option><option value="device">Gemini Nano only</option><option value="cloud">Gemini Cloud demo only</option><option value="rules">Offline Rules</option></select>
+          <ul class="runtime-status hint" aria-label="Coaching availability">
+            <li id="device-state">Checking Gemini Nano…</li>
+            <li id="cloud-state">Checking Gemini Cloud…</li>
+          </ul>
+          <label class="check consent"><input type="checkbox" id="cloud-consent"> Allow Gemini Cloud to process demo requests in this session.</label>
+          <p class="hint">Gemini Cloud receives catalog choices, demo preferences and the planning filters shown here. Saved plans, shopping checks and profile details stay on this device.</p>
+          <button class="button primary" id="build-plan" type="submit">Suggest a plan</button>
         </form>
         <div id="plan-status" role="status" aria-live="polite"></div>
         <div id="plan-result"></div>
@@ -75,7 +80,7 @@
     <section class="activity-section" id="activity" aria-labelledby="activity-title">
       <p class="eyebrow">MOVE YOUR WAY</p>
       <h2 id="activity-title">Find an activity you enjoy</h2>
-      <p class="subtle">Choose by effort and experience. Energy estimates use a 70 kg demo adult and vary by person and pace.</p>
+      <p class="subtle">Choose by effort and experience. Activity kcal are a 70 kg demo estimate using the <a href="https://pacompendium.com/adult-compendium/" target="_blank" rel="noopener noreferrer">Adult Compendium</a>. Actual energy use varies with pace and body weight.</p>
       <div class="activity-grid" id="activity-grid"></div>
     </section>
 

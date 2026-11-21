@@ -6,6 +6,7 @@ import {
   planOptions, preferences, validateChoices
 } from '../public/src/planner.js';
 import { failureCode, generatePlan } from '../public/src/ai.js';
+import { readState, saveState } from '../public/src/storage.js';
 
 const filters = { target: 500, cuisine: 'Any', scenario: 'regular', vegetarian: false };
 
@@ -55,4 +56,24 @@ test('missing config stays in the catalog and error categories remain distinct',
   assert.equal(failureCode(new Error('Firebase 403 PERMISSION_DENIED')), 'app-check');
   assert.equal(failureCode(new Error('Failed to fetch')), 'offline');
   assert.equal(failureCode(new Error('deadline')), 'deadline');
+  assert.equal(failureCode(new Error('device-quota')), 'device-quota');
+  assert.deepEqual(await generatePlan({ mode: 'rules', allowCloud: true }), { source: 'catalog' });
+});
+
+test('saved selections retain servings and source and can read older plans', t => {
+  const local = new Map();
+  const existing = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: { getItem: key => local.get(key), setItem: (key, value) => local.set(key, value) }
+  });
+  t.after(() => {
+    if (existing) Object.defineProperty(globalThis, 'localStorage', existing);
+    else delete globalThis.localStorage;
+  });
+  saveState({ profile: {}, plan: { meal: 'soba', workout: 'walk' } });
+  assert.deepEqual(readState().plan, { meal: 'soba', workout: 'walk', servings: 1, source: 'saved' });
+  const plan = { meal: 'soba', workout: 'walk', servings: 1.5, source: 'manual' };
+  assert.equal(saveState({ profile: {}, plan }), true);
+  assert.deepEqual(readState().plan, plan);
 });

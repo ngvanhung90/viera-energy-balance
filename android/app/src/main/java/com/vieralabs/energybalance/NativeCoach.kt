@@ -37,7 +37,9 @@ internal class NativeCoach(private val context: Context) {
             .setProjectId(value.getString("projectId"))
             .setApiKey(value.getString("apiKey"))
             .build()
-        FirebaseApp.initializeApp(context, options, "viera-energy-android")
+        val name = "viera-energy-android"
+        FirebaseApp.getApps(context).firstOrNull { it.name == name }
+            ?: FirebaseApp.initializeApp(context, options, name)
     }
     private val device by lazy {
         app?.let { firebase ->
@@ -51,7 +53,8 @@ internal class NativeCoach(private val context: Context) {
 
     suspend fun run(payload: JSONObject): JSONObject = try {
         when (payload.optString("operation")) {
-            "status" -> JSONObject().put("availability", withTimeout(3000) { availability() })
+            "status" -> JSONObject().put("availability", modelStatus())
+                .put("online", online())
                 .put("cloudConfigured", config?.optBoolean("sparkBillingVerified") == true && app != null)
             "generate" -> infer(payload.optString("branch"), payload.optString("prompt"))
             else -> error("service-error")
@@ -62,20 +65,37 @@ internal class NativeCoach(private val context: Context) {
         throw cancelled
     } catch (error: Exception) {
         val message = error.message.orEmpty()
+        val cloudBranch = payload.optString("branch") == "cloud"
         val reason = when {
-            "429" in message || Regex("resource.exhausted|quota", RegexOption.IGNORE_CASE).containsMatchIn(message) -> "quota"
+            message == "quota-cooldown" -> "quota"
+            Regex("\\b429\\b|resource.exhausted|quota", RegexOption.IGNORE_CASE).containsMatchIn(message) -> {
+                if (cloudBranch) {
+                    quotaUntil = SystemClock.elapsedRealtime() + 60000
+                    "quota"
+                } else "device-quota"
+            }
             "403" in message || Regex("app.check|permission.denied", RegexOption.IGNORE_CASE).containsMatchIn(message) -> "app-check"
             message in setOf("offline", "cloud-not-configured", "firebase-config-missing", "device-unavailable",
                 "unexpected-source", "invalid-selection") -> message
             else -> "service-error"
         }
-        if (reason == "quota") quotaUntil = SystemClock.elapsedRealtime() + 60000
         failure(reason)
+    }
+
+    private suspend fun modelStatus(): String = try {
+        withTimeout(3000) { availability() }
+    } catch (_: TimeoutCancellationException) {
+        "unknown"
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (_: Exception) {
+        "unknown"
     }
 
     private suspend fun availability(): String {
         val aicore = runCatching { context.packageManager.getPackageInfo("com.google.android.aicore", 0) }.isSuccess
-        if (!aicore) return "unavailable"
+        if (!aicore) return "unsupported"
+        if (app == null) return "setup-required"
         val extension = device?.onDeviceExtension ?: return "unavailable"
         return when (extension.checkStatus()) {
             OnDeviceModelStatus.AVAILABLE -> "available"
@@ -98,7 +118,7 @@ internal class NativeCoach(private val context: Context) {
         } else {
             if (branch != "cloud" || config?.optBoolean("sparkBillingVerified") != true) error("cloud-not-configured")
             if (!online()) error("offline")
-            if (started < quotaUntil) error("quota")
+            if (started < quotaUntil) error("quota-cooldown")
             val appCheck = check ?: error("app-check")
             try {
                 if (withTimeout(7000) { appCheck.getAppCheckToken(false).await() }.token.isBlank()) error("app-check")

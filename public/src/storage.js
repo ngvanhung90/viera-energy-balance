@@ -2,6 +2,8 @@ import { recipes, workouts } from './catalog.js';
 import { preferences } from './planner.js';
 
 const key = 'viera-energy-v1';
+export const servingOptions = [0.5, 1, 1.5, 2, 3];
+const planSources = ['device', 'cloud', 'catalog', 'manual'];
 const choices = {
   cuisine: ['Any', 'Asian', 'European'], taste: ['Any', 'Savory', 'Herby', 'Crunchy', 'Cozy'],
   intensity: ['Gentle', 'Moderate', 'Vigorous'], movement: ['Any', 'Mobility', 'Walking', 'Cycling', 'Running'],
@@ -29,7 +31,11 @@ export function readState() {
       state.profile.favoriteWorkouts = workouts.map(item => item.id).filter(id => raw.profile.favoriteWorkouts.includes(id));
     }
     if (recipes.some(item => item.id === raw.plan?.meal) && workouts.some(item => item.id === raw.plan?.workout)) {
-      state.plan = { meal: raw.plan.meal, workout: raw.plan.workout };
+      state.plan = {
+        meal: raw.plan.meal, workout: raw.plan.workout,
+        servings: servingOptions.includes(raw.plan.servings) ? raw.plan.servings : 1,
+        source: planSources.includes(raw.plan.source) ? raw.plan.source : 'saved'
+      };
     }
     for (const recipe of recipes) {
       const indexes = raw.checked?.[recipe.id];
