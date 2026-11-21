@@ -14,6 +14,7 @@ android {
         targetSdk = 35
         versionCode = 3
         versionName = "0.2.0"
+        testInstrumentationRunner = "com.vieralabs.energybalance.qa.UnattestedPlannerProbe"
     }
     sourceSets["main"].assets.srcDirs("../../public", "attestation")
     compileOptions {
