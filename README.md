@@ -4,9 +4,11 @@ Viera helps adults turn a dinner idea into an evening plan. Search Asian and Eur
 
 ### Buy a prepared meal nearby
 
-Open a meal and choose **Buy it nearby**. Use approximate device location, choose Bến Thành Market, or enter coordinates to check a 5 km straight-line radius. Enter another neighborhood or landmark by name to pass it to Maps as a search area. Directions open only when tapped, with the destination supplied and no automatic navigation. Location is held only in the open meal sheet and is never sent to Gemini or persisted. Opening Maps shares the displayed search context with Google.
+Open a meal and choose **Buy it nearby**. Use approximate device location, choose Bến Thành Market, or enter coordinates. For another city or neighborhood, submit its name, then select one of the returned points. **Search open map data** looks for related restaurants. Viera filters all results to 5 km straight-line distance from the chosen point. The nearby list and calorie alternatives already in the open sheet remain available offline.
 
-The bundled directory is a small Ho Chi Minh City pilot. A menu listing confirms a named dish appears on a public menu as checked on 22 November 2026. It does not verify current stock, takeaway, identical ingredients, dietary suitability, or restaurant kcal. A possible match has only evidence of the broader dish category. The calorie comparison uses Viera's catalog and serving sizes. Google Maps search works without a key or billing but cannot enforce a 5 km radius or verify menus. [Maps URLs](https://developers.google.com/maps/documentation/urls/get-started)
+Photon receives the area name when submitted. An explicit restaurant search sends a rounded center, a bounding box and a food category. Requests are limited, with no autocomplete or automatic retry. The public Photon endpoint is keyless and intended for reasonable use. Its coverage, rate limits and uptime can vary; it is intended here for the contest demo. Viera keeps the selected location and results in the open meal sheet and sends no location to Gemini. Directions open only when tapped and provide the destination without launching navigation. The fallback Maps search shares the dish and selected area with Google when opened. Maps search can extend past 5 km. [Photon](https://github.com/komoot/photon#demo-server) · [OpenStreetMap attribution](https://www.openstreetmap.org/copyright) · [Maps URLs](https://developers.google.com/maps/documentation/urls/get-started)
+
+The bundled menu references cover examples in Ho Chi Minh City and Paris. **Listed on menu** means the displayed dish variant appears on the linked menu as checked on 22 November 2026. Confirm current availability, takeaway and dietary ingredients with the restaurant. Venues found by name or category in open map data appear as **Possible match**. Nutrition is shown separately. Viera's kcal figures come from its own ingredient weights and serving sizes, and the listed restaurants have no verified published kcal in this build.
 
 | Place | Menu or category evidence | Address and map pin |
 | --- | --- | --- |
@@ -14,6 +16,9 @@ The bundled directory is a small Ho Chi Minh City pilot. A menu listing confirms
 | Bếp Cuốn Sài Gòn | [Restaurant menu](https://bepcuon.net/thuc-don/) | [Official address](https://bepcuon.net/) · [Pin metadata](https://pinguide.city/places/bep-cuon-sai-gon/) |
 | A Taste of Saigon – Old Market | [Branch menu](https://atasteofsaigon.vn/wp-content/uploads/2025/07/Old-Market-FOOD-MENU.pdf) | [Branch contact and its Maps pin](https://atasteofsaigon.vn/contact-us/) |
 | Secret Garden – Lê Công Kiều | [Restaurant category description](https://secretgardensaigon.com/) | [Branch address and its Maps pin](https://secretgardensaigon.com/) |
+| Don Giovanni | [Restaurant menu](https://www.dongiovanniparis.com/carte) | [OpenStreetMap pin](https://www.openstreetmap.org/node/8016720377) |
+| Amalfi | [Restaurant menu and address](https://www.restaurant-amalfi.fr/carte-pates-fraiches-paris-12/) | [OpenStreetMap pin](https://www.openstreetmap.org/node/11364651926) |
+| Amalfitana | [Restaurant menu and address](https://amalfitana-paris.com/fr/menu/notre-carte) | [OpenStreetMap address point](https://www.openstreetmap.org/node/2026702530) |
 
 The directory stores factual names, addresses, positions and source links. It does not redistribute menus, photos or reviews. The Bến Thành location anchor comes from [Wikidata](https://www.wikidata.org/wiki/Q3232879).
 

@@ -25,6 +25,21 @@ const places = [
     name: 'Secret Garden – Lê Công Kiều', address: '19 Lê Công Kiều, TP. Hồ Chí Minh',
     lat: 10.7703653, lng: 106.6996626, recipe: 'rolls', dish: 'Fresh rolls',
     source: 'https://secretgardensaigon.com/'
+  },
+  {
+    name: 'Amalfitana', address: '8 Rue Saint-Ferdinand, 75017 Paris',
+    lat: 48.8788767, lng: 2.2903342, recipe: 'pasta', dish: 'Tomato and basil penne', openData: true,
+    menu: 'https://amalfitana-paris.com/fr/menu/notre-carte'
+  },
+  {
+    name: 'Amalfi', address: '86 Boulevard de Picpus, 75012 Paris',
+    lat: 48.8461371, lng: 2.4012766, recipe: 'pasta', dish: 'Tomato and basil penne', openData: true,
+    menu: 'https://www.restaurant-amalfi.fr/carte-pates-fraiches-paris-12/'
+  },
+  {
+    name: 'Don Giovanni', address: '19 Rue François Miron, 75004 Paris',
+    lat: 48.8557366, lng: 2.3571646, recipe: 'pasta', dish: 'Tomato and stracciatella penne', openData: true,
+    menu: 'https://www.dongiovanniparis.com/carte'
   }
 ];
 
@@ -51,12 +66,15 @@ export function distanceKm(from, to) {
   return 6371.0088 * 2 * Math.asin(Math.sqrt(Math.min(1, arc)));
 }
 
+export function inNearbyRadius(km, origin) {
+  return km + (origin.accuracy ?? 0) / 1000 <= nearbyRadiusKm;
+}
+
 export function nearbyPlaces(recipeId, origin) {
   if (!isPoint(origin)) return [];
-  const margin = (origin.accuracy ?? 0) / 1000;
   return places.filter(place => place.recipe === recipeId)
     .map(place => ({ ...place, km: distanceKm(origin, place) }))
-    .filter(place => place.km + margin <= nearbyRadiusKm)
+    .filter(place => inNearbyRadius(place.km, origin))
     .sort((a, b) => Number(Boolean(b.menu)) - Number(Boolean(a.menu)) || a.km - b.km)
     .slice(0, 5);
 }
@@ -90,7 +108,7 @@ export function nearbySearchUrl(recipe, origin, language, vegetarian) {
     salmon: 'cá hồi khoai tây', rolls: 'gỏi cuốn tôm', chickpea: 'salad đậu gà'
   };
   const dish = vietnamese ? queries[recipe.id] : recipe.name;
-  const area = origin?.area || (isPoint(origin) ? `${origin.lat.toFixed(3)},${origin.lng.toFixed(3)}` : '');
+  const area = origin?.area || (isPoint(origin) ? `${origin.lat.toFixed(2)},${origin.lng.toFixed(2)}` : '');
   const diet = vegetarian ? { vi: 'chay', en: 'vegetarian', es: 'vegetariano', fr: 'végétarien' }[vietnamese ? 'vi' : language] : '';
   return mapsUrl([dish, diet, area].filter(Boolean).join(' '));
 }

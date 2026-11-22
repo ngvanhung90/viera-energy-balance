@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { recipes } from '../public/src/catalog.js';
 import { calories, mapsUrl, preferences } from '../public/src/planner.js';
 import { benThanh, distanceKm, manualArea, nearbyAlternatives, nearbyPlaces, nearbySearchUrl } from '../public/src/nearby.js';
+import { findAreas, findPossiblePlaces } from '../public/src/nearby-discovery.js';
 
 test('Bến Thành lists verified menu items ahead of possible matches', () => {
   const places = nearbyPlaces('rolls', manualArea('Chợ Bến Thành'));
@@ -52,4 +53,49 @@ test('Maps search encodes the selected dish and area; directions contain only th
   const directions = new URL(mapsUrl('10.7738453,106.7021775', true));
   assert.equal(directions.pathname, '/maps/dir/');
   assert.deepEqual([...directions.searchParams.keys()], ['api', 'destination']);
+});
+
+test('open map discovery limits coordinates sent and omits venues outside the true radius', async () => {
+  const origin = { lat: 48.857514, lng: 2.351513 };
+  const point = (name, id, coordinates, osmValue = 'restaurant') => ({
+    type: 'Feature', geometry: { type: 'Point', coordinates },
+    properties: { name, city: 'Paris', osm_key: 'amenity', osm_value: osmValue, osm_type: 'N', osm_id: id }
+  });
+  const request = async (url, init) => {
+    const lookup = new URL(url);
+    assert.equal(lookup.origin, 'https://photon.komoot.io');
+    assert.equal(lookup.searchParams.get('lat'), '48.86');
+    assert.equal(lookup.searchParams.get('lon'), '2.35');
+    assert.equal(init.credentials, 'omit');
+    assert.equal(init.referrerPolicy, 'no-referrer');
+    assert.ok(lookup.searchParams.has('bbox'));
+    return Response.json({ type: 'FeatureCollection', features: [
+      point('Pasta Linea', 3685624331, [2.364, 48.855], 'fast_food'),
+      point('Pasta Linea', 3685624331, [2.364, 48.855], 'fast_food'),
+      point('Pasta outside radius', 10, [2.351513, 48.903]),
+      point('Sola', 5132850848, [2.35, 48.85]),
+      point('Pasta hospital', 11, [2.35, 48.85], 'hospital')
+    ] });
+  };
+  const venues = await findPossiblePlaces('pasta', origin, new AbortController().signal, request);
+  assert.equal(venues.length, 1);
+  assert.equal(venues[0].name, 'Pasta Linea');
+  assert.ok(venues[0].km <= 5 && !venues[0].menu);
+  assert.equal(venues[0].source, 'https://www.openstreetmap.org/node/3685624331');
+});
+
+test('returns geocoded candidate points and rejects service errors', async () => {
+  const control = new AbortController();
+  const areas = await findAreas('Paris Hôtel de Ville', control.signal, async (url, init) => {
+    assert.equal(new URL(url).searchParams.get('q'), 'Paris Hôtel de Ville');
+    assert.equal(init.cache, 'no-store');
+    return Response.json({ type: 'FeatureCollection', features: [{
+      type: 'Feature', geometry: { type: 'Point', coordinates: [2.352, 48.857] },
+      properties: { name: 'Hôtel de ville', city: 'Paris', country: 'France' }
+    }] });
+  });
+  assert.deepEqual(areas, [{ lat: 48.857, lng: 2.352, area: 'Hôtel de ville, Paris, France', openData: true }]);
+  await assert.rejects(findAreas('Paris', control.signal, async () => new Response(null, { status: 503 })), /lookup-unavailable/);
+  assert.deepEqual(nearbyPlaces('pasta', areas[0]).map(place => place.name), ['Don Giovanni', 'Amalfi']);
+  assert.ok(nearbyPlaces('pasta', { lat: 48.858, lng: 2.34 }).some(place => place.name === 'Amalfitana'));
 });

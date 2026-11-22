@@ -124,6 +124,11 @@ class MainActivity : Activity() {
         } == true
         "bepcuon.net" -> uri.path == "/thuc-don/"
         "secretgardensaigon.com" -> uri.path == "/"
+        "amalfitana-paris.com" -> uri.path == "/fr/menu/notre-carte"
+        "www.restaurant-amalfi.fr" -> uri.path == "/carte-pates-fraiches-paris-12/"
+        "www.dongiovanniparis.com" -> uri.path == "/carte"
+        "www.openstreetmap.org" -> uri.path == "/copyright"
+            || uri.path?.matches(Regex("/(node|way|relation)/[0-9]+")) == true
         else -> false
     }
 

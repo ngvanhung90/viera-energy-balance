@@ -13,3 +13,7 @@ bundles mark the relative import change made to support offline loading.
 
 Firebase source and license: https://github.com/firebase/firebase-js-sdk
 Exact upstream license: https://github.com/firebase/firebase-js-sdk/blob/firebase%4013.4.0/LICENSE
+
+The nearby feature uses Photon for OpenStreetMap lookups. OpenStreetMap data
+is © OpenStreetMap contributors, available under the Open Database License.
+Attribution and terms: https://www.openstreetmap.org/copyright

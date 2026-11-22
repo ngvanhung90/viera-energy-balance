@@ -46,6 +46,7 @@ let detailTrigger;
 let draft;
 let libraryTargetChosen = false;
 let nearbyRefresh;
+let nearbyDispose;
 
 function filters() {
   const target = byId('meal-kcal').valueAsNumber;
@@ -314,9 +315,10 @@ function setMealPath(path) {
 
 function showRecipe(recipe, portion, selection, path = 'cook') {
   const content = byId('dialog-content');
+  nearbyDispose?.();
   content.innerHTML = recipeDetails(mealCopy(recipe), portion);
   localize(content);
-  nearbyRefresh = mountNearby(byId('buy-meal'), {
+  const nearby = mountNearby(byId('buy-meal'), {
     recipe: selectedRecipe, getServings: () => servings,
     getOnline: () => navigator.onLine && connectionState() !== false,
     profile: state.profile, selection,
@@ -326,6 +328,8 @@ function showRecipe(recipe, portion, selection, path = 'cook') {
       dialog.querySelector('[data-meal-path="buy"]').focus({ preventScroll: true });
     }
   });
+  nearbyRefresh = nearby.refresh;
+  nearbyDispose = nearby.dispose;
   byId('servings').value = String(servings);
   updateServing();
   setMealPath(path);
@@ -334,6 +338,8 @@ function showRecipe(recipe, portion, selection, path = 'cook') {
 function openDetails(trigger, recipe, workout) {
   detailTrigger = trigger;
   selectedRecipe = null;
+  nearbyDispose?.();
+  nearbyDispose = undefined;
   nearbyRefresh = undefined;
   if (workout) workout = activityCopy(workout);
   if (recipe) {
@@ -457,6 +463,8 @@ dialog.addEventListener('change', event => {
   }
 });
 dialog.addEventListener('close', () => {
+  nearbyDispose?.();
+  nearbyDispose = undefined;
   nearbyRefresh = undefined;
   byId('dialog-content').replaceChildren();
   detailTrigger?.focus({ preventScroll: true });

@@ -133,11 +133,24 @@ dialog::backdrop { background:#11261cd1 }
 .nearby-landmark { margin:8px 0; text-align:left; min-height:40px }
 .nearby #nearby-location-status:empty { display:none }
 .nearby .nearby-list { padding:0; list-style:none; margin:8px 0 14px }
+dialog:has(#buy-meal:not([hidden])) .dialog-close { height:44px; background:var(--card) }
+.nearby-venues { scroll-margin-block-start:48px }
 .nearby-list li { padding:10px 12px; border:1px solid var(--edge); border-radius:9px }
 .nearby-list p { color:var(--muted); font-size:.9rem; overflow-wrap:anywhere }
 .nearby-meta,.nearby-actions { display:flex; flex-wrap:wrap; gap:4px 14px }
 .nearby-meta { justify-content:space-between }
-.nearby-actions a { display:inline-flex; min-height:40px; align-items:center }
+.nearby-meta strong { flex:1 1 120px; min-width:0; overflow-wrap:anywhere }
+.nearby-distance { align-self:start; background:var(--tint); padding:1px 8px; border-radius:20px; font-size:.84rem; white-space:nowrap }
+.nearby-evidence { display:inline-block; margin:4px 0 2px; padding:2px 8px; border-radius:7px; background:#f3eee0; color:#55421c; font-size:.82rem }
+.nearby-evidence.menu-verified { background:var(--tint); color:var(--green) }
+.nearby-actions { align-items:center; margin-top:6px }
+.nearby-actions a { display:inline-flex; min-height:44px; align-items:center }
+.nearby-location #nearby-area-matches { display:grid; gap:6px; margin-top:8px }
+.nearby-location #nearby-area-matches:empty { display:none }
+.nearby-location #nearby-area-matches button { text-align:start; overflow-wrap:anywhere }
+.nearby-energy { margin:8px 0; font-weight:650 }
+#nearby-online { margin:8px 0 12px }
+#nearby-online-status:empty { display:none }
 .nearby-map { margin-top:12px }
 .grocery { display:grid; gap:8px; margin:12px 0 }
 .grocery label { font-weight:500 }
