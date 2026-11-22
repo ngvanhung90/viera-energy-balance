@@ -18,6 +18,7 @@ import com.google.firebase.ai.type.GenerativeBackend
 import com.google.firebase.ai.type.PublicPreviewAPI
 import com.google.firebase.ai.type.AudioTranscriptionConfig
 import com.google.firebase.ai.type.ContextWindowCompressionConfig
+import com.google.firebase.ai.type.SlidingWindow
 import com.google.firebase.ai.type.ResponseModality
 import com.google.firebase.ai.type.content
 import com.google.firebase.ai.type.generationConfig
@@ -76,7 +77,7 @@ internal class NativeCoach(private val context: Context) {
                         inputAudioTranscription = AudioTranscriptionConfig()
                     }
                     outputAudioTranscription = AudioTranscriptionConfig()
-                    contextWindowCompression = ContextWindowCompressionConfig()
+                    contextWindowCompression = ContextWindowCompressionConfig(slidingWindow = SlidingWindow())
                     maxOutputTokens = 512
                 },
                 systemInstruction = content { text(instruction) }
