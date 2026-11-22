@@ -5,6 +5,8 @@ import android.content.pm.ApplicationInfo
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.SystemClock
+import android.util.Log
+import com.google.android.play.core.integrity.IntegrityServiceException
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.ai.FirebaseAI
@@ -40,9 +42,14 @@ internal class NativeCoach(private val context: Context) {
     private val app by lazy {
         val value = config?.optJSONObject("firebase") ?: return@lazy null
         if (listOf("appId", "projectId", "apiKey").any { value.optString(it).isBlank() }) return@lazy null
+        val appId = value.getString("appId")
+        // Firebase Android app IDs include the numeric project number required by Play Integrity.
+        val projectNumber = appId.split(':', limit = 4).getOrNull(1)
+            ?.toLongOrNull()?.takeIf { it > 0 } ?: return@lazy null
         val options = FirebaseOptions.Builder()
-            .setApplicationId(value.getString("appId"))
+            .setApplicationId(appId)
             .setProjectId(value.getString("projectId"))
+            .setGcmSenderId(projectNumber.toString())
             .setApiKey(value.getString("apiKey"))
             .build()
         val name = "viera-energy-android"
@@ -88,10 +95,14 @@ internal class NativeCoach(private val context: Context) {
         val appCheck = check ?: error("app-check")
         try {
             if (withTimeout(7000) { appCheck.getAppCheckToken(false).await() }.token.isBlank()) error("app-check")
+        } catch (timeout: TimeoutCancellationException) {
+            logCloudFailure("app-check-token", timeout)
+            throw timeout
         } catch (cancelled: CancellationException) {
             throw cancelled
-        } catch (_: Exception) {
-            error("app-check")
+        } catch (failure: Exception) {
+            logCloudFailure("app-check-token", failure)
+            throw IllegalStateException("app-check", failure)
         }
     }
 
@@ -170,7 +181,14 @@ internal class NativeCoach(private val context: Context) {
                 onDeviceConfig = OnDeviceConfig(mode = InferenceMode.ONLY_IN_CLOUD)
             )
         }
-        val response = withTimeout(12000) { model.generateContent(prompt) }
+        val response = try {
+            withTimeout(12000) { model.generateContent(prompt) }
+        } catch (failure: Exception) {
+            if (branch == "cloud" && (failure !is CancellationException || failure is TimeoutCancellationException)) {
+                logCloudFailure("firebase-ai-generate", failure)
+            }
+            throw failure
+        }
         val expected = if (branch == "cloud") InferenceSource.IN_CLOUD else InferenceSource.ON_DEVICE
         if (response.inferenceSource != expected) error("unexpected-source")
         val source = if (expected == InferenceSource.IN_CLOUD) "IN_CLOUD" else "ON_DEVICE"
@@ -187,7 +205,21 @@ internal class NativeCoach(private val context: Context) {
 
     private fun failure(reason: String) = JSONObject().put("reason", reason)
 
+    private fun logCloudFailure(phase: String, failure: Exception) {
+        val causes = generateSequence<Throwable>(failure) { it.cause }.take(6).toList()
+        val integrityCode = causes.filterIsInstance<IntegrityServiceException>().firstOrNull()?.errorCode
+        val serviceCode = causes.firstNotNullOfOrNull { error ->
+            SERVICE_ERROR_CODE.find(error.message.orEmpty())?.value
+        }
+        // Exception messages can contain request data. Emit only class names and recognized codes.
+        val types = causes.joinToString("/") { it.javaClass.simpleName }
+        Log.w("VieraCloud", "phase=$phase type=$types integrityCode=$integrityCode serviceCode=$serviceCode")
+    }
+
     companion object {
         const val LIVE_MODEL = "gemini-3.1-flash-live-preview"
+        private val SERVICE_ERROR_CODE = Regex(
+            """\b(?:HTTP\s+[45][0-9]{2}|code:\s*[45][0-9]{2}|PERMISSION_DENIED|UNAUTHENTICATED|RESOURCE_EXHAUSTED|API_KEY_SERVICE_BLOCKED)\b"""
+        )
     }
 }
