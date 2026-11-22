@@ -90,6 +90,13 @@ For Android Device Streaming, check the project-specific catalog and remaining S
 
 Use the debug provider only for controlled QA. For an independently usable review APK, verify a signed release on a clean installation with the supported Play Integrity settings for its distribution channel and App Check still enforced. If Firebase AI Logic replay protection is enforced on the project, the client must use limited-use tokens. [Play Integrity setup](https://firebase.google.com/docs/app-check/android/play-integrity-provider) · [App Check replay protection](https://firebase.google.com/docs/ai-logic/app-check#replay-protection)
 
+### Review APK distributed outside Google Play
+
+1. Build `:app:assembleRelease` with the Android configuration for `com.vieralabs.energybalance`. Leave `liveFreeTierVerified` off unless the Live calls have passed runtime verification. Use a dedicated release signer and verify the APK with `apksigner verify --verbose --print-certs`. Keep signing material outside the repository.
+2. Enable the Google Play Integrity API on the matching Firebase project. In App Check, register the SHA-256 fingerprint of the review signing certificate. For an APK distributed exclusively outside Google Play, Firebase recommends requiring device integrity, with Play app recognition and a Play install license optional. Keep Firebase AI Logic enforcement enabled. [Firebase settings for distribution channels](https://firebase.google.com/docs/app-check/android/play-integrity-provider#configure_advanced_settings_optional)
+3. Use a separate authorized, Play-certified device for the clean install. Android cannot update an installed QA build with a release APK signed by a different key. Retain the QA installation and its data. Launch the clean release build, consent to the synthetic demo prompt, and confirm that Firebase accepted a cloud inference with `IN_CLOUD`. The QA build's earlier attestation does not verify the review build.
+4. Publish the verified APK and its SHA-256 with the exact source revision. Open the link without signing in and compare the downloaded APK hash. For #BuildHybridAI 2026, keep the APK and source accessible through the end of judging.
+
 Both platforms use explicit device-only and cloud-only SDK branches so private preferences and weight goals never enter a cloud fallback. The cloud prompt uses a sample preference profile, catalog choices and the selected demo filters. The model picks a recipe and activity from an approved set and returns structured IDs. The app rejects invalid IDs or results with an unexpected execution source. Nutrition, recipe steps, instructions, locations and links come from the curated data.
 
 ## Data and provenance

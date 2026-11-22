@@ -34,8 +34,9 @@ internal class LiveVoiceAudio(
     private var microphoneJob: Job? = null
     private var playbackJob: Job? = null
 
-    @SuppressLint("MissingPermission") // The Activity checks RECORD_AUDIO before creating this exchange.
-    fun start() {
+    @SuppressLint("MissingPermission") // The Activity checks RECORD_AUDIO before starting capture.
+    fun startMicrophone() {
+        if (microphoneJob?.isActive == true) return
         microphoneJob = scope.launch(Dispatchers.IO) {
             try {
                 val min = AudioRecord.getMinBufferSize(INPUT_RATE, AudioFormat.CHANNEL_IN_MONO, PCM)
@@ -72,12 +73,12 @@ internal class LiveVoiceAudio(
                         try {
                             send(buffer.copyOf(count))
                         } catch (_: TimeoutCancellationException) {
-                            failed("mic-send-timeout")
+                            if (isActive) failed("mic-send-timeout")
                             break
                         } catch (cancelled: CancellationException) {
                             throw cancelled
                         } catch (_: Exception) {
-                            failed("mic-send-error")
+                            if (isActive) failed("mic-send-error")
                             break
                         }
                         if (!chunkSent) {
@@ -94,9 +95,12 @@ internal class LiveVoiceAudio(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                failed("mic-read-error")
+                if (isActive) failed("mic-read-error")
             }
         }
+    }
+
+    fun startPlayback() {
         playbackJob = scope.launch(Dispatchers.IO) {
             try {
                 val min = AudioTrack.getMinBufferSize(OUTPUT_RATE, AudioFormat.CHANNEL_OUT_MONO, PCM)
@@ -151,7 +155,7 @@ internal class LiveVoiceAudio(
         try {
             playback.send(PlaybackChunk(playbackRevision.get(), bytes))
         } catch (_: CancellationException) {
-            // Muting or pausing may close this queue while the receiver is waiting for space.
+            // Ending the exchange may close this queue while the receiver is waiting for space.
             currentCoroutineContext().ensureActive()
         }
     }
@@ -164,11 +168,20 @@ internal class LiveVoiceAudio(
         playback.trySend(PlaybackChunk(revision, null))
     }
 
-    fun stop() {
+    fun stopMicrophone() {
         microphoneJob?.cancel()
+        capture.get()?.let { record -> runCatching { record.stop() } }
+    }
+
+    suspend fun awaitMicrophoneStopped() {
+        microphoneJob?.join()
+        currentCoroutineContext().ensureActive()
+    }
+
+    fun stop() {
+        stopMicrophone()
         playbackJob?.cancel()
         playback.cancel()
-        capture.get()?.let { record -> runCatching { record.stop() } }
     }
 
     private data class PlaybackChunk(val revision: Int, val bytes: ByteArray?)
