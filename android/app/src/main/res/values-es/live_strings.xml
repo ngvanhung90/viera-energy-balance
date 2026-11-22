@@ -35,6 +35,8 @@
     <string name="live_connect_timeout">Se agotó el tiempo de conexión. Inténtalo de nuevo.</string>
     <string name="live_interrupted">Se interrumpió la conexión. Reanuda cuando puedas. Tu paso está guardado.</string>
     <string name="live_mic_needed">Android necesita permiso para reanudar el audio.</string>
+    <string name="live_audio_input_failed">No se pudo leer el micrófono. Comprueba el acceso y vuelve a activarlo.</string>
+    <string name="live_audio_output_failed">No se pudo reproducir la voz de Gemini. Comprueba la salida de audio y vuelve a activar el micrófono.</string>
     <string name="live_paused">En pausa · micrófono y cámara apagados.</string>
     <string name="live_reconnecting">Reconectando Gemini Live…</string>
     <string name="live_camera_remains_off">Conectado · la cámara seguirá apagada hasta que la compartas.</string>

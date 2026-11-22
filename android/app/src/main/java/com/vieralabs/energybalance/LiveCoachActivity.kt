@@ -10,6 +10,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -29,10 +30,15 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import com.google.firebase.ai.type.InlineData
+import com.google.firebase.ai.type.InlineDataPart
+import com.google.firebase.ai.type.LiveServerContent
+import com.google.firebase.ai.type.LiveServerGoAway
+import com.google.firebase.ai.type.LiveServerVoiceActivity
 import com.google.firebase.ai.type.LiveSession
+import com.google.firebase.ai.type.LiveSessionResumptionUpdate
 import com.google.firebase.ai.type.PublicPreviewAPI
 import com.google.firebase.ai.type.SessionResumptionConfig
-import com.google.firebase.ai.type.liveAudioConversationConfig
+import com.google.firebase.ai.type.VoiceActivityType
 import java.io.ByteArrayOutputStream
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -43,7 +49,9 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -82,7 +90,10 @@ internal class LiveCoachActivity : Activity() {
     private var camera: LiveCamera? = null
     private var connection: Job? = null
     private var frames: Job? = null
-    private var monitor: Job? = null
+    private var receiver: Job? = null
+    private var audio: LiveVoiceAudio? = null
+    private var audioGeneration = 0
+    private var resumptionHandle: String? = null
     private var mic = false
     private var paused = false
     private var interrupted = false
@@ -90,9 +101,11 @@ internal class LiveCoachActivity : Activity() {
     private var pausedMic = false
     private var inputObserved = false
     private var outputObserved = false
+    private var modelAudioObserved = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        volumeControlStream = AudioManager.STREAM_MUSIC
         coach = NativeCoach(this)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         window.statusBarColor = cream
@@ -275,7 +288,7 @@ internal class LiveCoachActivity : Activity() {
         scope.launch {
             try {
                 withTimeout(5000) {
-                    connected.send("The user moved to step ${step + 1}: ${steps()[step]}. Guide this step.", turnComplete = true)
+                    connected.sendTextRealtime("The user moved to step ${step + 1}: ${steps()[step]}. Guide this step.")
                 }
             } catch (_: TimeoutCancellationException) {
                 interruptCall()
@@ -333,13 +346,10 @@ internal class LiveCoachActivity : Activity() {
                 val model = coach.liveModel(instruction())
                 val connected = withTimeout(15000) { model.connect(SessionResumptionConfig()) }
                 session = connected
+                startReceiving(connected)
                 startAudio(connected)
                 status.text = getString(R.string.live_connected)
                 qaEvent("transport-connected")
-                withTimeout(5000) {
-                    connected.send("Start with a short greeting and the saved step; then wait for my voice question.", turnComplete = true)
-                }
-                watchConnection(connected)
             } catch (error: TimeoutCancellationException) {
                 endSession()
                 status.text = getString(R.string.live_connect_timeout)
@@ -357,45 +367,96 @@ internal class LiveCoachActivity : Activity() {
         refresh()
     }
 
-    @SuppressLint("MissingPermission")
-    private suspend fun startAudio(connected: LiveSession) {
+    private fun startAudio(connected: LiveSession) {
         check(foreground && allowed(Manifest.permission.RECORD_AUDIO))
-        connected.startAudioConversation(liveAudioConversationConfig {
-            transcriptHandler = { input, output ->
-                scope.launch {
-                    if (session === connected && !interrupted && !paused) {
-                        if (!inputObserved && !input?.text.isNullOrBlank()) {
-                            inputObserved = true
-                            qaEvent("input-transcribed")
-                        }
-                        if (output != null) {
-                            caption.text = output.text.orEmpty().take(400)
-                            caption.visibility = if (caption.text.isBlank()) View.GONE else View.VISIBLE
-                            if (!outputObserved && caption.text.isNotBlank()) {
-                                outputObserved = true
-                                qaEvent("output-transcribed")
-                            }
+        val generation = ++audioGeneration
+        audio = LiveVoiceAudio(
+            scope,
+            send = { bytes -> withTimeout(5000) { connected.sendAudioRealtime(InlineData(bytes, LiveVoiceAudio.INPUT_MIME)) } },
+            event = ::qaEvent,
+            failed = { reason -> scope.launch {
+                if (session === connected && generation == audioGeneration && mic) {
+                    qaEvent(reason)
+                    when {
+                        reason.startsWith("mic-send") -> interruptCall()
+                        else -> {
+                            stopAudio()
+                            status.text = getString(if (reason.startsWith("speaker")) R.string.live_audio_output_failed
+                                else R.string.live_audio_input_failed)
+                            refresh()
                         }
                     }
                 }
-            }
-            goAwayHandler = { scope.launch { if (session === connected) interruptCall() } }
-        })
+            } }
+        ).also { it.start() }
         mic = true
     }
 
-    private fun watchConnection(connected: LiveSession) {
-        monitor?.cancel()
-        monitor = scope.launch {
-            while (isActive && session === connected && !interrupted) {
-                delay(1000)
-                if (connected.isClosed()) interruptCall()
+    private fun startReceiving(connected: LiveSession) {
+        receiver = scope.launch {
+            try {
+                // The SDK polls its WebSocket. Keep that work off the UI and audio paths.
+                connected.receive().flowOn(Dispatchers.IO).collect { message ->
+                    if (session !== connected) return@collect
+                    when (message) {
+                        is LiveSessionResumptionUpdate -> {
+                            if (message.resumable == true && !message.newHandle.isNullOrBlank()) {
+                                if (resumptionHandle == null) qaEvent("resume-handle-received")
+                                resumptionHandle = message.newHandle
+                            }
+                        }
+                        is LiveServerVoiceActivity -> when (message.type) {
+                            VoiceActivityType.ACTIVITY_START -> qaEvent("server-speech-start")
+                            VoiceActivityType.ACTIVITY_END -> qaEvent("server-speech-end")
+                            else -> Unit
+                        }
+                        is LiveServerGoAway -> interruptCall()
+                        is LiveServerContent -> if (!interrupted && !paused) renderServerContent(message)
+                        else -> Unit
+                    }
+                }
+                qaEvent("server-receive-closed")
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                qaEvent("server-receive-error")
+            } finally {
+                if (isActive && session === connected) interruptCall()
             }
+        }
+    }
+
+    private suspend fun renderServerContent(message: LiveServerContent) {
+        if (!inputObserved && !message.inputTranscription?.text.isNullOrBlank()) {
+            inputObserved = true
+            qaEvent("input-transcribed")
+        }
+        message.outputTranscription?.let { output ->
+            caption.text = output.text.orEmpty().take(400)
+            caption.visibility = if (caption.text.isBlank()) View.GONE else View.VISIBLE
+            if (!outputObserved && caption.text.isNotBlank()) {
+                outputObserved = true
+                qaEvent("output-transcribed")
+            }
+        }
+        if (message.turnComplete) qaEvent("server-turn-complete")
+        if (message.interrupted) {
+            audio?.discardPlayback()
+            return
+        }
+        for (part in message.content?.parts.orEmpty().filterIsInstance<InlineDataPart>()) {
+            if (!part.mimeType.startsWith("audio/pcm", ignoreCase = true)) continue
+            if (!modelAudioObserved && part.inlineData.isNotEmpty()) {
+                modelAudioObserved = true
+                qaEvent("model-pcm-received")
+            }
+            audio?.play(part.inlineData)
         }
     }
 
     private fun interruptCall() {
         if (interrupted || session == null) return
+        if (!paused) pausedMic = mic
         stopCamera()
         stopAudio()
         interrupted = true
@@ -431,21 +492,22 @@ internal class LiveCoachActivity : Activity() {
     }
 
     private fun restartAudio(connected: LiveSession, reconnect: Boolean) {
-        val restoreAudio = !paused || pausedMic
+        val restoreAudio = if (paused || reconnect) pausedMic else true
         connection = scope.launch(start = CoroutineStart.LAZY) {
             try {
                 if (reconnect) {
                     status.text = getString(R.string.live_reconnecting)
-                    withTimeout(12000) { connected.resumeSession() }
+                    val handle = checkNotNull(resumptionHandle)
+                    connected.stopReceiving()
+                    receiver?.cancelAndJoin()
+                    withTimeout(12000) { connected.resumeSession(SessionResumptionConfig(handle)) }
+                    qaEvent("resume-with-handle-connected")
+                    startReceiving(connected)
                 }
                 if (restoreAudio) startAudio(connected)
                 paused = false
                 interrupted = false
                 status.text = getString(R.string.live_camera_remains_off)
-                watchConnection(connected)
-                if (reconnect && restoreAudio) withTimeout(5000) {
-                    connected.send("Continue from the user's saved step ${step + 1}: ${steps()[step]}.", turnComplete = true)
-                }
             } catch (error: TimeoutCancellationException) {
                 endSession()
                 status.text = getString(R.string.live_resume_timeout)
@@ -464,7 +526,9 @@ internal class LiveCoachActivity : Activity() {
     }
 
     private fun stopAudio() {
-        session?.takeIf { it.isAudioConversationActive() }?.stopAudioConversation()
+        audioGeneration++
+        audio?.stop()
+        audio = null
         mic = false
     }
 
@@ -594,8 +658,9 @@ internal class LiveCoachActivity : Activity() {
     }
 
     private fun endSession() {
-        monitor?.cancel()
-        monitor = null
+        session?.stopReceiving()
+        receiver?.cancel()
+        receiver = null
         stopCamera()
         stopAudio()
         val previous = session
@@ -607,6 +672,8 @@ internal class LiveCoachActivity : Activity() {
         interrupted = false
         inputObserved = false
         outputObserved = false
+        modelAudioObserved = false
+        resumptionHandle = null
         caption.text = ""
         caption.visibility = View.GONE
     }

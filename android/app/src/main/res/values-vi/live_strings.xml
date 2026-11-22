@@ -35,6 +35,8 @@
     <string name="live_connect_timeout">Kết nối quá thời gian. Hãy thử lại.</string>
     <string name="live_interrupted">Mất kết nối. Bạn có thể tiếp tục khi sẵn sàng. Bước hiện tại đã lưu.</string>
     <string name="live_mic_needed">Cần quyền micrô trên Android để bật lại âm thanh.</string>
+    <string name="live_audio_input_failed">Không đọc được micrô. Hãy kiểm tra quyền truy cập rồi bật lại micrô.</string>
+    <string name="live_audio_output_failed">Không phát được giọng Gemini. Hãy kiểm tra đầu ra âm thanh rồi bật lại micrô.</string>
     <string name="live_paused">Đã tạm dừng · micrô và camera đang tắt.</string>
     <string name="live_reconnecting">Đang kết nối lại Gemini Live…</string>
     <string name="live_camera_remains_off">Đã kết nối · camera vẫn tắt cho đến khi bạn chia sẻ.</string>

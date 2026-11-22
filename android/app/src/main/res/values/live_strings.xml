@@ -35,6 +35,8 @@
     <string name="live_connect_timeout">Connection timed out. Try again.</string>
     <string name="live_interrupted">Connection interrupted. Resume when ready. Your step is saved.</string>
     <string name="live_mic_needed">Android microphone permission is required to resume audio.</string>
+    <string name="live_audio_input_failed">Could not read the microphone. Check access, then turn the microphone back on.</string>
+    <string name="live_audio_output_failed">Could not play the coach’s voice. Check your audio output, then turn the microphone back on.</string>
     <string name="live_paused">Paused · microphone and camera are off.</string>
     <string name="live_reconnecting">Reconnecting Live…</string>
     <string name="live_camera_remains_off">Connected · camera is off until you share it.</string>
