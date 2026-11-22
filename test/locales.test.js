@@ -12,6 +12,33 @@ test('locale selection uses the first supported phone setting and falls back to 
   assert.equal(chooseLanguage(['ja-JP']), 'en');
 });
 
+test('planner explanations and home accessibility labels use the selected Android language', async () => {
+  const messages = [
+    'These picks fit the time and equipment you selected.',
+    'The meal choice considers your per-plate estimate.',
+    'The pairing considers the preferences used for this run.',
+    'Viera Energy Balance home',
+    'Illustration of a lemongrass chicken and rice bowl with herbs'
+  ];
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  try {
+    for (const tag of ['vi-VN', 'es-MX', 'fr-CA', 'en-US']) {
+      Object.defineProperty(globalThis, 'navigator', {
+        configurable: true,
+        value: { userAgent: `VieraLocale/${tag}` }
+      });
+      const { t } = await import(`../public/src/locales.js?locale=${tag}`);
+      for (const message of messages) {
+        if (tag === 'en-US') assert.equal(t(message), message);
+        else assert.notEqual(t(message), message, `${tag}: ${message}`);
+      }
+    }
+  } finally {
+    if (descriptor) Object.defineProperty(globalThis, 'navigator', descriptor);
+    else delete globalThis.navigator;
+  }
+});
+
 test('localized ingredients are searchable without changing calories or recipe and workout IDs', () => {
   const meal = recipes.find(item => item.id === 'soba');
   const workout = workouts.find(item => item.id === 'walk');
