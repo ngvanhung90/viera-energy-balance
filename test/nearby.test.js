@@ -24,13 +24,12 @@ test('the radius follows the selected point and excludes uncertain outer matches
   assert.ok(distanceKm({ lat: 0, lng: 179.99 }, { lat: 0, lng: -179.99 }) < 3);
 });
 
-test('device location keeps an opted-in precise fix local and rounds approximate choices', () => {
+test('device location respects the reported precision and rounds approximate fixes', () => {
   const fix = { lat: 48.858262, lng: 2.340145, accuracy: 12, precise: true };
-  assert.deepEqual(deviceSearchPoint(fix, true), fix);
-  const approximate = deviceSearchPoint(fix, false);
+  assert.deepEqual(deviceSearchPoint(fix), fix);
+  const approximate = deviceSearchPoint({ ...fix, precise: false });
   assert.deepEqual(approximate, { lat: 48.86, lng: 2.34, accuracy: 1000, precise: false });
-  assert.deepEqual(deviceSearchPoint({ ...fix, precise: false }, true), approximate);
-  assert.equal(deviceSearchPoint({ ...fix, accuracy: -1 }, true), null);
+  assert.equal(deviceSearchPoint({ ...fix, accuracy: -1 }), null);
   const names = point => nearbyPlaces('pasta', point).map(place => place.name);
   assert.ok(names(fix).includes('Amalfitana'));
   assert.ok(!names(approximate).includes('Amalfitana'));

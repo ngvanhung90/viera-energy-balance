@@ -46,6 +46,7 @@ let detailTrigger;
 let draft;
 let libraryTargetChosen = false;
 let nearbyRefresh;
+let nearbyActivate;
 let nearbyDispose;
 
 function filters() {
@@ -310,7 +311,8 @@ function setMealPath(path) {
   for (const button of dialog.querySelectorAll('[data-meal-path]')) {
     button.setAttribute('aria-pressed', String(button.dataset.mealPath === path));
   }
-  nearbyRefresh?.();
+  if (path === 'buy') nearbyActivate?.();
+  else nearbyDispose?.();
 }
 
 function showRecipe(recipe, portion, selection, path = 'cook') {
@@ -329,6 +331,7 @@ function showRecipe(recipe, portion, selection, path = 'cook') {
     }
   });
   nearbyRefresh = nearby.refresh;
+  nearbyActivate = nearby.activate;
   nearbyDispose = nearby.dispose;
   byId('servings').value = String(servings);
   updateServing();
@@ -340,6 +343,7 @@ function openDetails(trigger, recipe, workout) {
   selectedRecipe = null;
   nearbyDispose?.();
   nearbyDispose = undefined;
+  nearbyActivate = undefined;
   nearbyRefresh = undefined;
   if (workout) workout = activityCopy(workout);
   if (recipe) {
@@ -465,6 +469,7 @@ dialog.addEventListener('change', event => {
 dialog.addEventListener('close', () => {
   nearbyDispose?.();
   nearbyDispose = undefined;
+  nearbyActivate = undefined;
   nearbyRefresh = undefined;
   byId('dialog-content').replaceChildren();
   detailTrigger?.focus({ preventScroll: true });

@@ -35,7 +35,7 @@ import org.json.JSONObject
 private const val origin = "https://appassets.androidplatform.net"
 private const val locationPermission = 1080
 
-private data class NearbyLocationRequest(val id: String, val precise: Boolean, val reply: (JSONObject) -> Unit)
+private data class NearbyLocationRequest(val id: String, val reply: (JSONObject) -> Unit)
 
 class MainActivity : Activity() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -43,6 +43,7 @@ class MainActivity : Activity() {
     private var locationCancellation: CancellationSignal? = null
     private var locationRequest: NearbyLocationRequest? = null
     private var permissionPending = false
+    private var resumed = false
     private val locationDeadline = Runnable { finishLocation() }
     private lateinit var web: WebView
 
@@ -69,11 +70,7 @@ class MainActivity : Activity() {
                     if (url.scheme == "https" && url.host == "appassets.androidplatform.net") return false
                     if (url.scheme == "https" && (url.host in setOf("www.youtube.com", "www.google.com", "fdc.nal.usda.gov", "pacompendium.com")
                             || nearbySource(url))) {
-                        try {
-                            startActivity(Intent(Intent.ACTION_VIEW, url))
-                        } catch (_: ActivityNotFoundException) {
-                            Toast.makeText(this@MainActivity, R.string.live_external_browser, Toast.LENGTH_SHORT).show()
-                        }
+                        openExternalLink(url)
                     }
                     return true
                 }
@@ -94,7 +91,7 @@ class MainActivity : Activity() {
                 val id = payload.optString("id").takeIf { it.length in 1..32 }
                     ?: return@addWebMessageListener
                 if (payload.optString("operation") == "nearby-location") {
-                    requestNearbyLocation(id, payload.optBoolean("precise")) { result ->
+                    requestNearbyLocation(id) { result ->
                         reply.postMessage(result.put("id", id).toString())
                     }
                     return@addWebMessageListener
@@ -128,6 +125,22 @@ class MainActivity : Activity() {
         web.loadUrl("$origin/assets/index.html")
     }
 
+    private fun openExternalLink(url: Uri) {
+        if (url.host == "www.google.com" && url.path == "/maps/dir/") {
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, url).setPackage("com.google.android.apps.maps"))
+                return
+            } catch (_: ActivityNotFoundException) {
+                // A browser can show the same directions if Maps is unavailable.
+            }
+        }
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, url))
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(this, R.string.live_external_browser, Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun nearbySource(uri: Uri): Boolean = when (uri.host) {
         "propagandabistros.com", "atasteofsaigon.vn" -> uri.path?.let {
             it.startsWith("/wp-content/uploads/") && it.endsWith(".pdf")
@@ -145,45 +158,56 @@ class MainActivity : Activity() {
     private fun granted(permission: String): Boolean =
         checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
 
-    private fun requestNearbyLocation(id: String, precise: Boolean, reply: (JSONObject) -> Unit) {
-        if (locationRequest != null || permissionPending || !web.hasWindowFocus()) {
+    private fun requestNearbyLocation(id: String, reply: (JSONObject) -> Unit) {
+        if (locationRequest != null || permissionPending || !resumed || !web.hasWindowFocus()) {
             reply(JSONObject().put("reason", "location-unavailable"))
             return
         }
-        locationRequest = NearbyLocationRequest(id, precise, reply)
-        val fineGranted = granted(Manifest.permission.ACCESS_FINE_LOCATION)
-        if (fineGranted || (!precise && granted(Manifest.permission.ACCESS_COARSE_LOCATION))) {
-            readNearbyLocation(precise && fineGranted)
+        locationRequest = NearbyLocationRequest(id, reply)
+        if (granted(Manifest.permission.ACCESS_FINE_LOCATION) || granted(Manifest.permission.ACCESS_COARSE_LOCATION)) {
+            readNearbyLocation()
             return
         }
-        val permissions = if (precise) {
-            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-        } else arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION)
         permissionPending = true
-        requestPermissions(permissions, locationPermission)
+        requestPermissions(
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+            locationPermission
+        )
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, results: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, results)
         if (requestCode != locationPermission) return
         permissionPending = false
-        val request = locationRequest ?: return
+        if (locationRequest == null) return
         if (results.none { it == PackageManager.PERMISSION_GRANTED }) {
             finishLocation(reason = "location-denied")
             return
         }
-        readNearbyLocation(request.precise && granted(Manifest.permission.ACCESS_FINE_LOCATION))
+        readNearbyLocation()
     }
 
     @SuppressLint("MissingPermission")
-    private fun readNearbyLocation(precise: Boolean) {
+    private fun readNearbyLocation() {
+        if (!resumed || permissionPending || locationRequest == null || locationCancellation != null) return
+        val precise = granted(Manifest.permission.ACCESS_FINE_LOCATION)
+        if (!precise && !granted(Manifest.permission.ACCESS_COARSE_LOCATION)) {
+            finishLocation(reason = "location-denied")
+            return
+        }
         val manager = getSystemService(LocationManager::class.java)
         try {
+            if (!LocationManagerCompat.isLocationEnabled(manager)) {
+                finishLocation(reason = "location-disabled")
+                return
+            }
             val provider = when {
                 precise && Build.VERSION.SDK_INT >= 31 && manager.isProviderEnabled(LocationManager.FUSED_PROVIDER) ->
                     LocationManager.FUSED_PROVIDER
                 precise && manager.isProviderEnabled(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
                 manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> LocationManager.NETWORK_PROVIDER
+                Build.VERSION.SDK_INT >= 31 && manager.isProviderEnabled(LocationManager.FUSED_PROVIDER) ->
+                    LocationManager.FUSED_PROVIDER
                 else -> null
             }
             if (provider == null) {
@@ -220,9 +244,16 @@ class MainActivity : Activity() {
         request?.reply?.invoke(result)
     }
 
-    override fun onStop() {
-        if (locationRequest != null) finishLocation()
-        super.onStop()
+    override fun onResume() {
+        super.onResume()
+        resumed = true
+        readNearbyLocation()
+    }
+
+    override fun onPause() {
+        resumed = false
+        if (locationCancellation != null) finishLocation()
+        super.onPause()
     }
 
     override fun onDestroy() {

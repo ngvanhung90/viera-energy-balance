@@ -1,4 +1,4 @@
-const name = 'viera-energy-shell-v7';
+const name = 'viera-energy-shell-v8';
 const shell = [
   './', './index.html', './app.css', './manifest.webmanifest', './assets/icon.png', './assets/icon-large.png',
   './src/main.js', './src/planner.js', './src/catalog.js', './src/storage.js', './src/ai.js',
