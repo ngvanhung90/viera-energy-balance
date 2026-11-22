@@ -32,5 +32,6 @@ dependencies {
     implementation("com.google.firebase:firebase-ai:18.2.0")
     implementation("com.google.firebase:firebase-ai-ondevice:16.0.0-beta08")
     implementation("com.google.firebase:firebase-appcheck-playintegrity:20.1.0")
+    implementation("com.google.android.play:integrity:1.4.0")
     debugImplementation("com.google.firebase:firebase-appcheck-debug:20.1.0")
 }
