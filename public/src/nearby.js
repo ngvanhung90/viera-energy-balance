@@ -66,6 +66,15 @@ export function distanceKm(from, to) {
   return 6371.0088 * 2 * Math.asin(Math.sqrt(Math.min(1, arc)));
 }
 
+export function deviceSearchPoint(fix, preciseRequested) {
+  if (!isPoint(fix) || !Number.isFinite(fix.accuracy) || fix.accuracy < 0) return null;
+  const { lat, lng, accuracy } = fix;
+  if (preciseRequested && fix.precise === true) return { lat, lng, accuracy, precise: true };
+  const rounded = { lat: Number(lat.toFixed(2)), lng: Number(lng.toFixed(2)) };
+  const shiftMeters = 1000 * distanceKm(fix, rounded);
+  return { ...rounded, accuracy: Math.max(1000, accuracy + shiftMeters), precise: false };
+}
+
 export function inNearbyRadius(km, origin) {
   return km + (origin.accuracy ?? 0) / 1000 <= nearbyRadiusKm;
 }

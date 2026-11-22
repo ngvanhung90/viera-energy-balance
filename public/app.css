@@ -126,6 +126,8 @@ dialog::backdrop { background:#11261cd1 }
 .nearby-location { margin-bottom:8px }
 .nearby-location summary { padding:8px 42px 8px 10px; border:1px solid var(--edge); border-radius:9px; overflow-wrap:anywhere }
 .nearby-location[open] > .hint { margin:8px 0 }
+.nearby-location-actions { display:flex; flex-wrap:wrap; gap:8px }
+.nearby-location-actions button { min-height:44px }
 .nearby-area { margin-top:12px }
 .nearby-area label { display:block; margin-bottom:4px }
 .nearby-area div { display:flex; gap:8px; flex-wrap:wrap }

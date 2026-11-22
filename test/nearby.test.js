@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { recipes } from '../public/src/catalog.js';
 import { calories, mapsUrl, preferences } from '../public/src/planner.js';
-import { benThanh, distanceKm, manualArea, nearbyAlternatives, nearbyPlaces, nearbySearchUrl } from '../public/src/nearby.js';
+import { benThanh, deviceSearchPoint, distanceKm, manualArea, nearbyAlternatives, nearbyPlaces, nearbySearchUrl } from '../public/src/nearby.js';
 import { findAreas, findPossiblePlaces } from '../public/src/nearby-discovery.js';
 
 test('Bến Thành lists verified menu items ahead of possible matches', () => {
@@ -22,6 +22,22 @@ test('the radius follows the selected point and excludes uncertain outer matches
   assert.equal(manualArea('91,106.7'), null);
   assert.equal(manualArea(''), null);
   assert.ok(distanceKm({ lat: 0, lng: 179.99 }, { lat: 0, lng: -179.99 }) < 3);
+});
+
+test('device location keeps an opted-in precise fix local and rounds approximate choices', () => {
+  const fix = { lat: 48.858262, lng: 2.340145, accuracy: 12, precise: true };
+  assert.deepEqual(deviceSearchPoint(fix, true), fix);
+  const approximate = deviceSearchPoint(fix, false);
+  assert.deepEqual(approximate, { lat: 48.86, lng: 2.34, accuracy: 1000, precise: false });
+  assert.deepEqual(deviceSearchPoint({ ...fix, precise: false }, true), approximate);
+  assert.equal(deviceSearchPoint({ ...fix, accuracy: -1 }, true), null);
+  const names = point => nearbyPlaces('pasta', point).map(place => place.name);
+  assert.ok(names(fix).includes('Amalfitana'));
+  assert.ok(!names(approximate).includes('Amalfitana'));
+  const pasta = recipes.find(recipe => recipe.id === 'pasta');
+  const query = new URL(nearbySearchUrl(pasta, fix, 'en', false)).searchParams.get('query');
+  assert.ok(query.endsWith('48.86,2.34'));
+  assert.ok(!query.includes('48.858262'));
 });
 
 test('alternatives respect the energy target, portions, favorites and vegetarian filter', () => {

@@ -1,7 +1,7 @@
 import { calories, mapsUrl } from './planner.js';
 import { language, t } from './locales.js';
 import { displayMeal } from './catalog-locales.js';
-import { benThanh, distanceKm, isPoint, manualArea, nearbyAlternatives, nearbyPlaces, nearbySearchUrl } from './nearby.js';
+import { benThanh, deviceSearchPoint, distanceKm, isPoint, manualArea, nearbyAlternatives, nearbyPlaces, nearbySearchUrl } from './nearby.js';
 import { findAreas, findPossiblePlaces, osmAttribution } from './nearby-discovery.js';
 
 export const nearbyPanel = `
@@ -9,8 +9,11 @@ export const nearbyPanel = `
     <h3 id="nearby-heading">Find ready-made food</h3>
     <details class="nearby-location" open>
       <summary>Choose search area</summary>
-      <p class="hint">Your location is used once to compare distances and is not saved.</p>
-      <button class="button outline" type="button" data-nearby-location>Use approximate location</button>
+      <p class="hint">Precise location improves distance estimates. Viera reads your location once and does not save it.</p>
+      <div class="nearby-location-actions">
+        <button class="button outline" type="button" data-nearby-location="precise">Use precise location</button>
+        <button class="button outline" type="button" data-nearby-location="approximate">Use approximate location</button>
+      </div>
       <form class="nearby-area">
         <label for="nearby-area">Neighborhood, landmark or coordinates</label>
         <div><input id="nearby-area" type="text" maxlength="120" placeholder="Enter an area or latitude, longitude">
@@ -34,7 +37,7 @@ export const nearbyPanel = `
 
 let requestNumber = 0;
 
-function currentLocation() {
+function currentLocation(precise, signal) {
   const bridge = globalThis.VieraNative;
   if (bridge) {
     const id = `nearby-${++requestNumber}`;
@@ -42,11 +45,18 @@ function currentLocation() {
       const stop = () => {
         clearTimeout(timer);
         bridge.removeEventListener('message', receive);
+        signal.removeEventListener('abort', cancel);
       };
-      const timer = setTimeout(() => {
+      function cancel() {
         stop();
+        try {
+          bridge.postMessage(JSON.stringify({ id, operation: 'cancel-nearby-location' }));
+        } catch {
+          // Android also stops the fix when the activity closes or its timeout expires.
+        }
         reject(new Error('location-unavailable'));
-      }, 60000);
+      }
+      const timer = setTimeout(cancel, 60000);
       function receive(event) {
         const result = JSON.parse(event.data);
         if (result.id !== id) return;
@@ -55,8 +65,9 @@ function currentLocation() {
         else resolve(result);
       }
       bridge.addEventListener('message', receive);
+      signal.addEventListener('abort', cancel, { once: true });
       try {
-        bridge.postMessage(JSON.stringify({ id, operation: 'nearby-location' }));
+        bridge.postMessage(JSON.stringify({ id, operation: 'nearby-location', precise }));
       } catch {
         stop();
         reject(new Error('location-unavailable'));
@@ -66,9 +77,10 @@ function currentLocation() {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) return reject(new Error('location-unavailable'));
     navigator.geolocation.getCurrentPosition(({ coords }) => resolve({
-      lat: coords.latitude, lng: coords.longitude, accuracy: coords.accuracy
+      lat: coords.latitude, lng: coords.longitude, accuracy: coords.accuracy,
+      precise: precise && coords.accuracy <= 100
     }), error => reject(new Error(error.code === 1 ? 'location-denied' : 'location-unavailable')),
-    { maximumAge: 0, timeout: 9000, enableHighAccuracy: false });
+    { maximumAge: 0, timeout: precise ? 15000 : 9000, enableHighAccuracy: precise });
   });
 }
 
@@ -107,7 +119,7 @@ export function mountNearby(panel, { recipe, getServings, getOnline, profile, se
   const find = query => panel.querySelector(query);
   const locationControls = find('.nearby-location');
   const locationLabel = find('.nearby-location summary');
-  const useLocation = find('[data-nearby-location]');
+  const locationButtons = panel.querySelectorAll('[data-nearby-location]');
   const area = find('#nearby-area');
   const vegetarian = find('#nearby-vegetarian');
   const status = find('#nearby-location-status');
@@ -125,15 +137,16 @@ export function mountNearby(panel, { recipe, getServings, getOnline, profile, se
     'lookup-unavailable': 'The open map service is unavailable. Try coordinates or use Google Maps.'
   };
   let options = [];
-  let locationUpdate = 0;
   let lookup;
+  let deviceLookup;
   const foundVenues = selection.foundVenues ??= new Map();
   area.value = selection.area ?? '';
   vegetarian.checked = selection.vegetarian;
 
   function showLocation(origin) {
     locationLabel.textContent = origin?.area || selection.area
-      || t(origin ? 'Approximate location selected' : 'Choose search area');
+      || (origin?.precise ? `${t('Device location selected')} · ±${number.format(Math.ceil(origin.accuracy))} m`
+        : t(origin ? 'Approximate location selected' : 'Choose search area'));
     locationControls.open = !origin;
   }
   showLocation(selection.origin);
@@ -142,6 +155,12 @@ export function mountNearby(panel, { recipe, getServings, getOnline, profile, se
     lookup?.abort();
     lookup = undefined;
     onlineStatus.textContent = '';
+  }
+
+  function cancelDeviceLookup() {
+    deviceLookup?.abort();
+    deviceLookup = undefined;
+    locationButtons.forEach(button => { button.disabled = false; });
   }
 
   async function query(run, onResult, errorElement) {
@@ -219,11 +238,10 @@ export function mountNearby(panel, { recipe, getServings, getOnline, profile, se
   }
 
   function useArea(origin) {
-    locationUpdate++;
+    cancelDeviceLookup();
     cancelLookup();
     foundVenues.clear();
     areaMatches.replaceChildren();
-    useLocation.disabled = false;
     selection.origin = origin;
     selection.area = origin ? area.value.trim() : '';
     showLocation(isPoint(origin) ? origin : null);
@@ -236,6 +254,7 @@ export function mountNearby(panel, { recipe, getServings, getOnline, profile, se
 
   area.addEventListener('input', () => {
     cancelLookup();
+    cancelDeviceLookup();
     areaMatches.replaceChildren();
     status.textContent = '';
     refresh();
@@ -267,25 +286,32 @@ export function mountNearby(panel, { recipe, getServings, getOnline, profile, se
     area.value = benThanh.area;
     useArea(benThanh);
   });
-  useLocation.addEventListener('click', async () => {
-    const request = ++locationUpdate;
+  async function searchDeviceLocation(precise) {
+    if (deviceLookup) return;
+    const controller = new AbortController();
+    deviceLookup = controller;
     cancelLookup();
-    useLocation.disabled = true;
-    status.textContent = t('Looking up your approximate location…');
+    locationButtons.forEach(button => { button.disabled = true; });
+    status.textContent = t('Getting your device location…');
     refresh();
     try {
-      const origin = await currentLocation();
-      if (!panel.isConnected || request !== locationUpdate) return;
-      if (!isPoint(origin)) throw new Error('location-unavailable');
+      const fix = await currentLocation(precise, controller.signal);
+      if (!panel.isConnected || deviceLookup !== controller) return;
+      const origin = deviceSearchPoint(fix, precise);
+      if (!origin) throw new Error('location-unavailable');
       area.value = '';
       useArea(origin);
+      if (precise && !origin.precise) status.textContent = t('Only approximate location was available. The search point was adjusted.');
     } catch (error) {
-      if (!panel.isConnected || request !== locationUpdate) return;
+      if (!panel.isConnected || deviceLookup !== controller) return;
       status.textContent = t(messages[error.message] ?? messages['location-unavailable']);
     } finally {
-      if (request === locationUpdate) useLocation.disabled = false;
+      if (deviceLookup === controller) cancelDeviceLookup();
     }
-  });
+  }
+  for (const button of locationButtons) {
+    button.addEventListener('click', () => searchDeviceLocation(button.dataset.nearbyLocation === 'precise'));
+  }
   vegetarian.addEventListener('change', () => {
     selection.vegetarian = vegetarian.checked;
     refresh();
@@ -303,5 +329,5 @@ export function mountNearby(panel, { recipe, getServings, getOnline, profile, se
   function targetForChoice() {
     return selection.target ?? calories(recipe, getServings());
   }
-  return { refresh, dispose: cancelLookup };
+  return { refresh, dispose() { cancelLookup(); cancelDeviceLookup(); } };
 }

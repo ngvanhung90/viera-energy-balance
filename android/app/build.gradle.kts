@@ -25,6 +25,7 @@ android {
 kotlin { jvmToolchain(17) }
 
 dependencies {
+    implementation("androidx.core:core:1.13.1")
     implementation("androidx.webkit:webkit:1.12.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
