@@ -4,6 +4,7 @@ import { freshState, readState, saveState, servingOptions } from './storage.js';
 import { checkDevice, cloudConfigured, connectionState, generatePlan, loadConfig } from './ai.js';
 import { language, localize, t } from './locales.js';
 import { displayActivity, displayMeal } from './catalog-locales.js';
+import { mountNearby, nearbyPanel } from './nearby-view.js';
 
 const byId = id => document.getElementById(id);
 const dialog = byId('details-dialog');
@@ -43,6 +44,8 @@ let selectedRecipe;
 let servings = 1;
 let detailTrigger;
 let draft;
+let libraryTargetChosen = false;
+let nearbyRefresh;
 
 function filters() {
   const target = byId('meal-kcal').valueAsNumber;
@@ -59,14 +62,15 @@ function favoriteButton(id, name, active, action) {
 }
 
 function renderMeals() {
-  const matches = mealMatches(filters(), state.profile, mealCopy);
+  const settings = filters();
+  const matches = mealMatches(settings, state.profile, mealCopy);
   byId('recipe-count').textContent = `${matches.length} ${t(matches.length === 1 ? 'recipe' : 'recipes')}`;
   byId('recipe-grid').innerHTML = matches.map(mealCopy).map(recipe => `
     <article class="recipe-card">
       <div class="card-picture"><img src="${openImage(recipe)}" alt="" loading="lazy">${favoriteButton(recipe.id, recipe.name, state.profile.favorites.includes(recipe.id), 'like')}</div>
       <div class="card-body"><p class="kicker">${recipe.origin}</p><h3>${recipe.name}</h3>
       <p class="metric"><strong>≈ ${calories(recipe)} kcal</strong> · ${recipe.minutes} ${t('min')}</p>
-      <button class="text-button" data-recipe="${recipe.id}">View recipe</button></div>
+      <button class="text-button" data-recipe="${recipe.id}" ${libraryTargetChosen ? `data-target="${settings.target}"` : ''}>View recipe</button></div>
     </article>`).join('') || '<p class="empty">No recipes match these filters. Try another ingredient or cuisine.</p>';
   localize(byId('recipe-grid'));
 }
@@ -125,7 +129,7 @@ function renderResult(result) {
       <span class="source">${labels[source]}</span>
       <h3>${headline}</h3>
       ${explanations[focus] ? `<p class="hint">${explanations[focus]}</p>` : ''}
-      <button class="plan-item" data-recipe="${meal.id}" data-portion="${portion}"><strong>${mealCopy(meal).name}</strong><small>${portion} × ${t('serving')} · ≈ ${calories(meal, portion)} kcal</small></button>
+      <button class="plan-item" data-recipe="${meal.id}" data-portion="${portion}" ${result.target ? `data-target="${result.target}"` : ''}><strong>${mealCopy(meal).name}</strong><small>${portion} × ${t('serving')} · ≈ ${calories(meal, portion)} kcal</small></button>
       <button class="plan-item" data-workout="${workout.id}"><strong>${activityCopy(workout).name}</strong><small>${workout.minutes} ${t('min')} · ${t(workout.intensity)}</small></button>
       ${saved ? '' : '<button type="button" class="button primary" data-save-draft>Save this pairing</button>'}
     </div>`;
@@ -170,6 +174,7 @@ function toggleNetwork() {
   const online = connectionState();
   byId('network-label').textContent = t(online === null ? 'Checking connection…' : online ? 'Online' : 'Offline');
   document.querySelector('.network').classList.toggle('offline', online !== true);
+  nearbyRefresh?.();
 }
 
 async function updateStatus() {
@@ -241,8 +246,8 @@ async function buildPlan(event) {
       allowCloud: byId('cloud-consent').checked
     });
     const result = reply.source === 'catalog'
-      ? { ...reply, meal: options.mealOptions[0], workout: options.movementOptions[0] }
-      : reply;
+      ? { ...reply, target: options.target, meal: options.mealOptions[0], workout: options.movementOptions[0] }
+      : { ...reply, target: options.target };
     draft = result;
     renderResult(result);
     const fallback = result.source === 'catalog' && reasons[result.reason] ? `${t(reasons[result.reason])} ` : '';
@@ -259,6 +264,7 @@ function updateServing() {
   dialog.querySelectorAll('[data-grams]').forEach(element => {
     element.textContent = `${Math.round(Number(element.dataset.grams) * servings)} g`;
   });
+  nearbyRefresh?.();
 }
 
 function recipeDetails(recipe, portion) {
@@ -272,6 +278,11 @@ function recipeDetails(recipe, portion) {
     <div class="portion"><label for="servings">Servings</label><select id="servings"><option value="0.5">½</option><option value="1" selected>1</option><option value="1.5">1½</option><option value="2">2</option><option value="3">3</option></select>
     <strong id="portion-energy">≈ ${calories(recipe, servings)} kcal</strong></div>
     <p class="hint">Rounded to the nearest 5 kcal from recipe ingredient weights and reference values, including <a href="https://fdc.nal.usda.gov/" target="_blank" rel="noopener noreferrer">USDA FoodData Central</a>. Brands and preparation can change the total.</p>
+    <div class="meal-path" role="group" aria-label="How will you get this meal?">
+      <button class="button outline" type="button" data-meal-path="cook" aria-pressed="true" aria-controls="cook-meal">Cook it myself</button>
+      <button class="button outline" type="button" data-meal-path="buy" aria-pressed="false" aria-controls="buy-meal">Buy it nearby</button>
+    </div>
+    <div id="cook-meal">
     <section class="dialog-section"><h3>Shopping list</h3>
     <div class="grocery">${recipe.ingredients.map((item, index) => `
       <label class="check"><input type="checkbox" data-ingredient="${index}" ${grocery.includes(index) ? 'checked' : ''}>
@@ -287,15 +298,50 @@ function recipeDetails(recipe, portion) {
     <p class="hint">${t('Reference video')} · ${recipe.creator}</p>
     <p><button class="button outline" data-video="${recipe.video}">Load cooking video</button>
     <a class="button outline" href="https://www.youtube.com/watch?v=${recipe.video}" target="_blank" rel="noopener noreferrer">Open on YouTube</a></p>
-    <div class="video-frame"></div></section>
+    <div class="video-frame"></div></section></div>
+    ${nearbyPanel}
     <div class="dialog-section"><button type="button" class="button primary" data-select-meal>Add meal and choose movement</button></div>`;
+}
+
+function setMealPath(path) {
+  byId('buy-meal').hidden = path !== 'buy';
+  byId('cook-meal').hidden = path !== 'cook';
+  for (const button of dialog.querySelectorAll('[data-meal-path]')) {
+    button.setAttribute('aria-pressed', String(button.dataset.mealPath === path));
+  }
+  nearbyRefresh?.();
+}
+
+function showRecipe(recipe, portion, selection, path = 'cook') {
+  const content = byId('dialog-content');
+  content.innerHTML = recipeDetails(mealCopy(recipe), portion);
+  localize(content);
+  nearbyRefresh = mountNearby(byId('buy-meal'), {
+    recipe: selectedRecipe, getServings: () => servings,
+    getOnline: () => navigator.onLine && connectionState() !== false,
+    profile: state.profile, selection,
+    onChoose: ({ recipe: substitute, portion: preferredPortion }, target) => {
+      showRecipe(substitute, preferredPortion, { ...selection, target }, 'buy');
+      dialog.scrollTop = 0;
+      dialog.querySelector('[data-meal-path="buy"]').focus({ preventScroll: true });
+    }
+  });
+  byId('servings').value = String(servings);
+  updateServing();
+  setMealPath(path);
 }
 
 function openDetails(trigger, recipe, workout) {
   detailTrigger = trigger;
   selectedRecipe = null;
+  nearbyRefresh = undefined;
   if (workout) workout = activityCopy(workout);
-  byId('dialog-content').innerHTML = recipe ? recipeDetails(mealCopy(recipe), Number(trigger.dataset.portion)) : `
+  if (recipe) {
+    showRecipe(recipe, Number(trigger.dataset.portion), {
+      target: Number(trigger.dataset.target) || undefined, vegetarian: byId('vegetarian').checked
+    });
+  } else {
+    byId('dialog-content').innerHTML = `
     <p class="eyebrow">${t(workout.intensity)} · ${workout.minutes} ${t('min')}</p>
     <h2 id="dialog-heading">${workout.name}</h2>
     <p class="subtle">${t('Approx.')} ${activityCalories(workout)} kcal ${t('at the demo weight of 70 kg. Pick a pace that feels comfortable.')}</p>
@@ -303,10 +349,7 @@ function openDetails(trigger, recipe, workout) {
     ${liveButton('fitness', workout.id)}<ol>
     ${workout.steps.map(step => `<li>${step}</li>`).join('')}</ol>
     <button type="button" class="button primary" data-select-workout="${workout.id}">Add movement to my plan</button></div>`;
-  localize(byId('dialog-content'));
-  if (recipe) {
-    byId('servings').value = String(servings);
-    updateServing();
+    localize(byId('dialog-content'));
   }
   dialog.showModal();
   dialog.scrollTop = 0;
@@ -345,6 +388,10 @@ function saveProfile(event) {
 document.addEventListener('click', event => {
   const trigger = event.target.closest('button');
   if (!trigger) return;
+  if (trigger.dataset.mealPath) {
+    setMealPath(trigger.dataset.mealPath);
+    return;
+  }
   if (trigger.dataset.live) {
     openLive(trigger.dataset.live, trigger.dataset.liveWorkout);
     return;
@@ -410,10 +457,12 @@ dialog.addEventListener('change', event => {
   }
 });
 dialog.addEventListener('close', () => {
+  nearbyRefresh = undefined;
   byId('dialog-content').replaceChildren();
   detailTrigger?.focus({ preventScroll: true });
 });
 byId('meal-filter').addEventListener('submit', event => event.preventDefault());
+byId('meal-kcal').addEventListener('input', () => { libraryTargetChosen = true; });
 byId('meal-filter').addEventListener('input', renderMeals);
 byId('plan-form').addEventListener('submit', buildPlan);
 byId('profile-form').addEventListener('submit', saveProfile);
@@ -445,6 +494,8 @@ renderSaved();
 toggleNetwork();
 addEventListener('online', updateStatus);
 addEventListener('offline', updateStatus);
+addEventListener('online', () => nearbyRefresh?.());
+addEventListener('offline', () => nearbyRefresh?.());
 addEventListener('focus', updateStatus);
 loadConfig().then(updateStatus);
 if ('serviceWorker' in navigator && !navigator.userAgent.includes('VieraAndroid/1')) {

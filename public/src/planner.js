@@ -21,6 +21,12 @@ export function activityCalories(workout, weight = 70) {
   return Math.round(workout.met * 3.5 * weight / 200 * workout.minutes / 5) * 5;
 }
 
+export function mealPreferenceScore(recipe, profile) {
+  return (profile.favorites.includes(recipe.id) ? 30 : 0)
+    + (profile.taste !== 'Any' && recipe.tastes.includes(profile.taste) ? 18 : 0)
+    + (recipe.cuisine === profile.cuisine ? 12 : 0);
+}
+
 export function mealMatches({ target, cuisine, search = '', favoritesOnly = false }, profile, display = value => value) {
   const words = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
   return recipes.filter(recipe => {
@@ -32,10 +38,7 @@ export function mealMatches({ target, cuisine, search = '', favoritesOnly = fals
       && (!favoritesOnly || profile.favorites.includes(recipe.id))
       && words.every(word => searchable.includes(word));
   }).sort((first, second) => {
-    const score = recipe => Math.abs(calories(recipe) - target)
-      - (profile.favorites.includes(recipe.id) ? 30 : 0)
-      - (profile.taste !== 'Any' && recipe.tastes.includes(profile.taste) ? 18 : 0)
-      - (recipe.cuisine === profile.cuisine ? 12 : 0);
+    const score = recipe => Math.abs(calories(recipe) - target) - mealPreferenceScore(recipe, profile);
     return score(first) - score(second);
   });
 }

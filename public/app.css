@@ -119,6 +119,26 @@ dialog::backdrop { background:#11261cd1 }
 .dialog-section ol,.dialog-section ul { padding-left:22px }
 .portion { display:flex; align-items:center; gap:8px; margin-top:12px; flex-wrap:wrap }
 .portion select { width:auto }
+.meal-path { display:flex; flex-wrap:wrap; gap:8px; margin-top:15px }
+.meal-path [aria-pressed="true"] { background:var(--lime); border-color:var(--green) }
+.nearby h3,.nearby h4 { margin-bottom:8px }
+.nearby h3 { padding-inline-end:42px }
+.nearby-location { margin-bottom:8px }
+.nearby-location summary { padding:8px 42px 8px 10px; border:1px solid var(--edge); border-radius:9px; overflow-wrap:anywhere }
+.nearby-location[open] > .hint { margin:8px 0 }
+.nearby-area { margin-top:12px }
+.nearby-area label { display:block; margin-bottom:4px }
+.nearby-area div { display:flex; gap:8px; flex-wrap:wrap }
+.nearby-area input { flex:1 1 180px; min-width:0 }
+.nearby-landmark { margin:8px 0; text-align:left; min-height:40px }
+.nearby #nearby-location-status:empty { display:none }
+.nearby .nearby-list { padding:0; list-style:none; margin:8px 0 14px }
+.nearby-list li { padding:10px 12px; border:1px solid var(--edge); border-radius:9px }
+.nearby-list p { color:var(--muted); font-size:.9rem; overflow-wrap:anywhere }
+.nearby-meta,.nearby-actions { display:flex; flex-wrap:wrap; gap:4px 14px }
+.nearby-meta { justify-content:space-between }
+.nearby-actions a { display:inline-flex; min-height:40px; align-items:center }
+.nearby-map { margin-top:12px }
 .grocery { display:grid; gap:8px; margin:12px 0 }
 .grocery label { font-weight:500 }
 .grocery label:has(:checked) span { text-decoration:line-through; color:var(--muted) }

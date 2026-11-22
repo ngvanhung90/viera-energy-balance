@@ -2,6 +2,21 @@
 
 Viera helps adults turn a dinner idea into an evening plan. Search Asian and European dishes by name or ingredient, or sort by an estimated plate-energy target. Scale servings, check off ingredients, follow the written recipe or a linked cooking video, and open a store route in Maps. Add the selected meal and a movement routine, then save the pairing on the device. The coach also offers pairings to review and save. Favorites and weight-goal habit plans stay on the device.
 
+### Buy a prepared meal nearby
+
+Open a meal and choose **Buy it nearby**. Use approximate device location, choose Bến Thành Market, or enter coordinates to check a 5 km straight-line radius. Enter another neighborhood or landmark by name to pass it to Maps as a search area. Directions open only when tapped, with the destination supplied and no automatic navigation. Location is held only in the open meal sheet and is never sent to Gemini or persisted. Opening Maps shares the displayed search context with Google.
+
+The bundled directory is a small Ho Chi Minh City pilot. A menu listing confirms a named dish appears on a public menu as checked on 22 November 2026. It does not verify current stock, takeaway, identical ingredients, dietary suitability, or restaurant kcal. A possible match has only evidence of the broader dish category. The calorie comparison uses Viera's catalog and serving sizes. Google Maps search works without a key or billing but cannot enforce a 5 km radius or verify menus. [Maps URLs](https://developers.google.com/maps/documentation/urls/get-started)
+
+| Place | Menu or category evidence | Address and map pin |
+| --- | --- | --- |
+| Propaganda Vietnamese Bistro | [Restaurant menu](https://propagandabistros.com/wp-content/uploads/2023/12/food-menu-pp-190423-ol.pdf) | [21 Hàn Thuyên](https://aroundus.com/p/171587713-propaganda-vietnamese-bistro) |
+| Bếp Cuốn Sài Gòn | [Restaurant menu](https://bepcuon.net/thuc-don/) | [Official address](https://bepcuon.net/) · [Pin metadata](https://pinguide.city/places/bep-cuon-sai-gon/) |
+| A Taste of Saigon – Old Market | [Branch menu](https://atasteofsaigon.vn/wp-content/uploads/2025/07/Old-Market-FOOD-MENU.pdf) | [Branch contact and its Maps pin](https://atasteofsaigon.vn/contact-us/) |
+| Secret Garden – Lê Công Kiều | [Restaurant category description](https://secretgardensaigon.com/) | [Branch address and its Maps pin](https://secretgardensaigon.com/) |
+
+The directory stores factual names, addresses, positions and source links. It does not redistribute menus, photos or reviews. The Bến Thành location anchor comes from [Wikidata](https://www.wikidata.org/wiki/Q3232879).
+
 ## Android
 
 The Android app lives in `android/` and packages the same UI and recipe content. It uses the native Firebase Android SDK from `NativeCoach.kt` via an origin-scoped WebView message channel. The HTML served in an ordinary phone browser uses the web adapter instead.

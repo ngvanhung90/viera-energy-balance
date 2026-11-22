@@ -1,11 +1,20 @@
 package com.vieralabs.energybalance
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.CancellationSignal
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
 import android.view.WindowInsets
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -23,9 +32,14 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 private const val origin = "https://appassets.androidplatform.net"
+private const val locationPermission = 1080
 
 class MainActivity : Activity() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val locationHandler = Handler(Looper.getMainLooper())
+    private var locationCancellation: CancellationSignal? = null
+    private var locationReply: ((JSONObject) -> Unit)? = null
+    private val locationDeadline = Runnable { finishLocation() }
     private lateinit var web: WebView
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,7 +63,8 @@ class MainActivity : Activity() {
                     if (!request.isForMainFrame) return false
                     val url = request.url
                     if (url.scheme == "https" && url.host == "appassets.androidplatform.net") return false
-                    if (url.scheme == "https" && url.host in setOf("www.youtube.com", "www.google.com", "fdc.nal.usda.gov", "pacompendium.com")) {
+                    if (url.scheme == "https" && (url.host in setOf("www.youtube.com", "www.google.com", "fdc.nal.usda.gov", "pacompendium.com")
+                            || nearbySource(url))) {
                         try {
                             startActivity(Intent(Intent.ACTION_VIEW, url))
                         } catch (_: ActivityNotFoundException) {
@@ -74,6 +89,10 @@ class MainActivity : Activity() {
                     ?: return@addWebMessageListener
                 val id = payload.optString("id").takeIf { it.length in 1..32 }
                     ?: return@addWebMessageListener
+                if (payload.optString("operation") == "nearby-location") {
+                    requestNearbyLocation { result -> reply.postMessage(result.put("id", id).toString()) }
+                    return@addWebMessageListener
+                }
                 if (payload.optString("operation") == "open-live") {
                     val mode = payload.optString("mode")
                     if (mode == "cooking" || mode == "fitness") {
@@ -99,8 +118,88 @@ class MainActivity : Activity() {
         web.loadUrl("$origin/assets/index.html")
     }
 
+    private fun nearbySource(uri: Uri): Boolean = when (uri.host) {
+        "propagandabistros.com", "atasteofsaigon.vn" -> uri.path?.let {
+            it.startsWith("/wp-content/uploads/") && it.endsWith(".pdf")
+        } == true
+        "bepcuon.net" -> uri.path == "/thuc-don/"
+        "secretgardensaigon.com" -> uri.path == "/"
+        else -> false
+    }
+
+    private fun requestNearbyLocation(reply: (JSONObject) -> Unit) {
+        if (locationReply != null || !web.hasWindowFocus()) {
+            reply(JSONObject().put("reason", "location-unavailable"))
+            return
+        }
+        locationReply = reply
+        if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            readNearbyLocation()
+        } else {
+            requestPermissions(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION), locationPermission)
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, results: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, results)
+        if (requestCode != locationPermission || locationReply == null) return
+        if (results.firstOrNull() == PackageManager.PERMISSION_GRANTED) readNearbyLocation()
+        else finishLocation(reason = "location-denied")
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun readNearbyLocation() {
+        val manager = getSystemService(LocationManager::class.java)
+        val provider = LocationManager.NETWORK_PROVIDER
+        try {
+            if (!manager.isProviderEnabled(provider)) {
+                finishLocation()
+                return
+            }
+            if (Build.VERSION.SDK_INT >= 30) {
+                val signal = CancellationSignal()
+                locationCancellation = signal
+                locationHandler.postDelayed(locationDeadline, 9000)
+                manager.getCurrentLocation(provider, signal, mainExecutor) { location ->
+                    if (locationCancellation === signal) finishLocation(location)
+                }
+            } else {
+                val recent = manager.getLastKnownLocation(provider)?.takeIf {
+                    SystemClock.elapsedRealtimeNanos() - it.elapsedRealtimeNanos in 0..120_000_000_000L
+                }
+                finishLocation(recent)
+            }
+        } catch (_: SecurityException) {
+            finishLocation(reason = "location-denied")
+        } catch (_: IllegalArgumentException) {
+            finishLocation()
+        }
+    }
+
+    private fun finishLocation(location: Location? = null, reason: String = "location-unavailable") {
+        locationHandler.removeCallbacks(locationDeadline)
+        val signal = locationCancellation
+        locationCancellation = null
+        signal?.cancel()
+        val reply = locationReply
+        locationReply = null
+        val result = if (location != null && location.hasAccuracy() && location.accuracy.isFinite()) {
+            JSONObject().put("lat", location.latitude).put("lng", location.longitude).put("accuracy", location.accuracy.toDouble())
+        } else {
+            JSONObject().put("reason", reason)
+        }
+        reply?.invoke(result)
+    }
+
+    override fun onStop() {
+        if (locationCancellation != null) finishLocation()
+        super.onStop()
+    }
+
     override fun onDestroy() {
         scope.cancel()
+        locationReply = null
+        finishLocation()
         web.destroy()
         super.onDestroy()
     }
