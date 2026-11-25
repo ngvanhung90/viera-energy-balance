@@ -1,23 +1,41 @@
 package com.vieralabs.energybalance
 
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.os.Environment
+import android.os.StatFs
 import android.os.SystemClock
+import android.util.Log
+import com.google.android.play.core.integrity.IntegrityServiceException
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.ai.FirebaseAI
+import com.google.firebase.ai.DownloadStatus
 import com.google.firebase.ai.InferenceMode
 import com.google.firebase.ai.InferenceSource
+import com.google.firebase.ai.LiveGenerativeModel
 import com.google.firebase.ai.OnDeviceConfig
 import com.google.firebase.ai.OnDeviceModelOption
 import com.google.firebase.ai.OnDeviceModelStatus
 import com.google.firebase.ai.type.GenerativeBackend
+import com.google.firebase.ai.type.ActivityDetectionConfig
 import com.google.firebase.ai.type.PublicPreviewAPI
+import com.google.firebase.ai.type.AudioTranscriptionConfig
+import com.google.firebase.ai.type.RealtimeInputConfig
+import com.google.firebase.ai.type.ResponseModality
+import com.google.firebase.ai.type.content
 import com.google.firebase.ai.type.generationConfig
+import com.google.firebase.ai.type.liveGenerationConfig
+import com.google.firebase.ai.type.realtimeInputConfig
 import com.google.firebase.appcheck.FirebaseAppCheck
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
@@ -26,15 +44,24 @@ import org.json.JSONObject
 internal class NativeCoach(private val context: Context) {
     private val cloudModel = "gemini-3.5-flash-lite"
     private var quotaUntil = 0L
+    private var downloadJob: Job? = null
+    private var downloadTotal = 0L
+    private var downloadedBytes = 0L
+    private var downloadError: String? = null
     private val config = runCatching {
         context.assets.open("viera-native-config.json").bufferedReader().use { JSONObject(it.readText()) }
     }.getOrNull()
     private val app by lazy {
         val value = config?.optJSONObject("firebase") ?: return@lazy null
         if (listOf("appId", "projectId", "apiKey").any { value.optString(it).isBlank() }) return@lazy null
+        val appId = value.getString("appId")
+        // Firebase Android app IDs include the numeric project number required by Play Integrity.
+        val projectNumber = appId.split(':', limit = 4).getOrNull(1)
+            ?.toLongOrNull()?.takeIf { it > 0 } ?: return@lazy null
         val options = FirebaseOptions.Builder()
-            .setApplicationId(value.getString("appId"))
+            .setApplicationId(appId)
             .setProjectId(value.getString("projectId"))
+            .setGcmSenderId(projectNumber.toString())
             .setApiKey(value.getString("apiKey"))
             .build()
         val name = "viera-energy-android"
@@ -51,11 +78,71 @@ internal class NativeCoach(private val context: Context) {
     }
     private val check by lazy { app?.let { FirebaseAppCheck.getInstance(it).also(::installAttestation) } }
 
+    fun liveConfigured(): Boolean =
+        config?.optBoolean("sparkBillingVerified") == true &&
+            config.optBoolean("liveFreeTierVerified") &&
+            app?.options?.projectId == "viera-energy-balance"
+
+    fun liveEntryAvailable(): Boolean =
+        liveConfigured() && (config?.optBoolean("liveReleaseEnabled") == true || liveQaDiagnostics() ||
+            context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0)
+
+    // Keep QA event logging independent from availability in the reviewer release.
+    fun liveQaDiagnostics(): Boolean = config?.optBoolean("liveQaEnabled") == true && liveConfigured()
+
+    suspend fun liveModel(instruction: String, manualTurns: Boolean): LiveGenerativeModel {
+        check(liveEntryAvailable()) { "live-not-configured" }
+        check(online()) { "offline" }
+        requireAttestation()
+        return FirebaseAI.getInstance(requireNotNull(app), GenerativeBackend.googleAI(), true)
+            .liveModel(
+                modelName = LIVE_MODEL,
+                generationConfig = liveGenerationConfig {
+                    responseModality = ResponseModality.AUDIO
+                    realtimeInputConfig = realtimeInputConfig {
+                        if (manualTurns) {
+                            automaticActivityDetection = ActivityDetectionConfig.disabled()
+                        } else {
+                            automaticActivityDetection = ActivityDetectionConfig.builder()
+                                .setStartSensitivity(ActivityDetectionConfig.Sensitivity.LOW)
+                                .setEndSensitivity(ActivityDetectionConfig.Sensitivity.LOW)
+                                .setPrefixPaddingMs(40)
+                                .setSilenceDurationMs(700)
+                                .build()
+                            activityHandling = RealtimeInputConfig.ActivityHandling.INTERRUPT
+                            turnCoverage = RealtimeInputConfig.TurnCoverage.ONLY_ACTIVITY
+                        }
+                    }
+                    // Automatic turns need speech confirmation after a pause or reconnect.
+                    if (!manualTurns || liveQaDiagnostics() ||
+                        context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
+                    ) {
+                        inputAudioTranscription = AudioTranscriptionConfig()
+                    }
+                    outputAudioTranscription = AudioTranscriptionConfig()
+                },
+                systemInstruction = content { text(instruction) }
+            )
+    }
+
+    private suspend fun requireAttestation() {
+        val appCheck = check ?: error("app-check")
+        try {
+            if (withTimeout(7000) { appCheck.getAppCheckToken(false).await() }.token.isBlank()) error("app-check")
+        } catch (timeout: TimeoutCancellationException) {
+            logCloudFailure("app-check-token", timeout)
+            throw timeout
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            logCloudFailure("app-check-token", failure)
+            throw IllegalStateException("app-check", failure)
+        }
+    }
+
     suspend fun run(payload: JSONObject): JSONObject = try {
         when (payload.optString("operation")) {
-            "status" -> JSONObject().put("availability", modelStatus())
-                .put("online", online())
-                .put("cloudConfigured", config?.optBoolean("sparkBillingVerified") == true && app != null)
+            "status" -> status()
             "generate" -> infer(payload.optString("branch"), payload.optString("prompt"))
             else -> error("service-error")
         }
@@ -80,6 +167,66 @@ internal class NativeCoach(private val context: Context) {
             else -> "service-error"
         }
         failure(reason)
+    }
+
+    private suspend fun status(): JSONObject {
+        val availability = if (downloadJob?.isActive == true) "downloading" else modelStatus()
+        val download = JSONObject()
+            .put("totalBytes", downloadTotal)
+            .put("downloadedBytes", downloadedBytes)
+        if (availability != "available") download.put("error", downloadError)
+        return JSONObject().put("availability", availability)
+            .put("modelDownload", download)
+            .put("liveAvailable", liveEntryAvailable())
+            .put("online", online())
+            .put("cloudConfigured", config?.optBoolean("sparkBillingVerified") == true && app != null)
+    }
+
+    // Called only from the explicit download action in the app's own WebView.
+    suspend fun startModelDownload(scope: CoroutineScope, confirmed: Boolean): JSONObject {
+        if (!confirmed) return failure("device-download-consent")
+        if (downloadJob?.isActive == true) return JSONObject()
+        when (modelStatus()) {
+            "available", "downloading" -> return JSONObject()
+            "downloadable" -> Unit
+            else -> return failure("device-unavailable")
+        }
+        // A second tap may have passed the status check while the first one was suspended.
+        if (downloadJob?.isActive == true) return JSONObject()
+        val manager = context.getSystemService(ConnectivityManager::class.java)
+        val network = manager.getNetworkCapabilities(manager.activeNetwork)
+        if (network?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) != true ||
+            !network.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)) {
+            return failure("device-download-network")
+        }
+        val freeBytes = runCatching { StatFs(Environment.getDataDirectory().path).availableBytes }.getOrDefault(0L)
+        if (freeBytes < MIN_MODEL_FREE_BYTES) return failure("device-download-storage")
+        val extension = device?.onDeviceExtension ?: return failure("device-unavailable")
+        downloadTotal = 0L
+        downloadedBytes = 0L
+        downloadError = null
+        downloadJob = scope.launch {
+            try {
+                val terminal = withTimeout(20 * 60_000L) {
+                    extension.download().first { event ->
+                        when (event) {
+                            is DownloadStatus.DownloadStarted -> downloadTotal = event.bytesToDownload
+                            is DownloadStatus.DownloadInProgress -> downloadedBytes = event.totalBytesDownloaded
+                            else -> Unit
+                        }
+                        event is DownloadStatus.DownloadCompleted || event is DownloadStatus.DownloadFailed
+                    }
+                }
+                if (terminal is DownloadStatus.DownloadFailed) downloadError = "device-download-failed"
+            } catch (_: TimeoutCancellationException) {
+                downloadError = "device-download-timeout"
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                downloadError = "device-download-failed"
+            }
+        }
+        return JSONObject()
     }
 
     private suspend fun modelStatus(): String = try {
@@ -119,21 +266,21 @@ internal class NativeCoach(private val context: Context) {
             if (branch != "cloud" || config?.optBoolean("sparkBillingVerified") != true) error("cloud-not-configured")
             if (!online()) error("offline")
             if (started < quotaUntil) error("quota-cooldown")
-            val appCheck = check ?: error("app-check")
-            try {
-                if (withTimeout(7000) { appCheck.getAppCheckToken(false).await() }.token.isBlank()) error("app-check")
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                error("app-check")
-            }
+            requireAttestation()
             FirebaseAI.getInstance(firebase, GenerativeBackend.googleAI()).generativeModel(
                 modelName = cloudModel,
                 generationConfig = generationConfig { responseMimeType = "application/json"; maxOutputTokens = 128 },
                 onDeviceConfig = OnDeviceConfig(mode = InferenceMode.ONLY_IN_CLOUD)
             )
         }
-        val response = withTimeout(12000) { model.generateContent(prompt) }
+        val response = try {
+            withTimeout(12000) { model.generateContent(prompt) }
+        } catch (failure: Exception) {
+            if (branch == "cloud" && (failure !is CancellationException || failure is TimeoutCancellationException)) {
+                logCloudFailure("firebase-ai-generate", failure)
+            }
+            throw failure
+        }
         val expected = if (branch == "cloud") InferenceSource.IN_CLOUD else InferenceSource.ON_DEVICE
         if (response.inferenceSource != expected) error("unexpected-source")
         val source = if (expected == InferenceSource.IN_CLOUD) "IN_CLOUD" else "ON_DEVICE"
@@ -149,4 +296,24 @@ internal class NativeCoach(private val context: Context) {
     }
 
     private fun failure(reason: String) = JSONObject().put("reason", reason)
+
+    private fun logCloudFailure(phase: String, failure: Exception) {
+        val causes = generateSequence<Throwable>(failure) { it.cause }.take(6).toList()
+        val integrityCode = causes.filterIsInstance<IntegrityServiceException>().firstOrNull()?.errorCode
+        val serviceCode = causes.firstNotNullOfOrNull { error ->
+            SERVICE_ERROR_CODE.find(error.message.orEmpty())?.value
+        }
+        // Exception messages can contain request data. Emit only class names and recognized codes.
+        val types = causes.joinToString("/") { it.javaClass.simpleName }
+        Log.w("VieraCloud", "phase=$phase type=$types integrityCode=$integrityCode serviceCode=$serviceCode")
+    }
+
+    companion object {
+        const val LIVE_MODEL = "gemini-3.1-flash-live-preview"
+        // App-side preflight headroom. The exact download size is reported by AICore after it starts.
+        private const val MIN_MODEL_FREE_BYTES = 4L * 1024 * 1024 * 1024
+        private val SERVICE_ERROR_CODE = Regex(
+            """\b(?:HTTP\s+[45][0-9]{2}|code:\s*[45][0-9]{2}|PERMISSION_DENIED|UNAUTHENTICATED|RESOURCE_EXHAUSTED|API_KEY_SERVICE_BLOCKED)\b"""
+        )
+    }
 }
