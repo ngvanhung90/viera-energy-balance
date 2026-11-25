@@ -12,8 +12,9 @@ android {
         applicationId = "com.vieralabs.energybalance"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.1.1"
+        versionCode = 3
+        versionName = "0.2.0"
+        testInstrumentationRunner = "com.vieralabs.energybalance.qa.UnattestedPlannerProbe"
     }
     sourceSets["main"].assets.srcDirs("../../public", "attestation")
     compileOptions {
@@ -24,11 +25,13 @@ android {
 kotlin { jvmToolchain(17) }
 
 dependencies {
+    implementation("androidx.core:core:1.13.1")
     implementation("androidx.webkit:webkit:1.12.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
     implementation("com.google.firebase:firebase-ai:18.2.0")
     implementation("com.google.firebase:firebase-ai-ondevice:16.0.0-beta08")
     implementation("com.google.firebase:firebase-appcheck-playintegrity:20.1.0")
+    implementation("com.google.android.play:integrity:1.4.0")
     debugImplementation("com.google.firebase:firebase-appcheck-debug:20.1.0")
 }
