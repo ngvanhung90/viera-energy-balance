@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="live_fitness">Huấn luyện tập luyện trực tiếp</string>
+    <string name="live_cooking">Hướng dẫn nấu ăn trực tiếp</string>
+    <string name="live_model">Gemini Live · Đám mây · %1$s</string>
+    <string name="live_previous_step">Bước trước</string>
+    <string name="live_next_step">Bước tiếp</string>
+    <string name="live_current_step">Bước %1$d/%2$d · %3$s</string>
+    <string name="live_prepare_ingredients">Chuẩn bị nguyên liệu</string>
+    <string name="live_camera_off">Camera đang tắt</string>
+    <string name="live_camera_share">Chia sẻ camera</string>
+    <string name="live_camera_turn_off">Tắt camera</string>
+    <string name="live_send_question">Gửi câu hỏi</string>
+    <string name="live_ask_question">Nói câu hỏi</string>
+    <string name="live_pause">Tạm dừng</string>
+    <string name="live_resume">Tiếp tục cuộc gọi</string>
+    <string name="live_end">Kết thúc / đóng</string>
+    <string name="live_consent">Tôi đồng ý chia sẻ âm thanh demo và hình ảnh khi tôi bật camera với Google Gemini Free tier trong cuộc gọi này. Google có thể dùng nội dung để cải thiện dịch vụ. Không đưa khuôn mặt, thông tin sức khỏe hay nội dung riêng tư vào demo.</string>
+    <string name="live_start">Bắt đầu cuộc gọi</string>
+    <string name="live_privacy">Viera gửi âm thanh khi mic bật và gửi hình khi bạn chia sẻ camera. Chế độ thủ công chỉ gửi âm thanh và hình trong lúc đặt câu hỏi. Viera cũng gửi công thức hoặc bài tập đã chọn và không lưu bản ghi hay phụ đề.</string>
+    <string name="live_manual_mode">Nói và gửi thủ công (dự phòng)</string>
+    <string name="live_mic_on">Bật mic</string>
+    <string name="live_mic_off">Tắt mic</string>
+    <string name="live_listening">Đang nghe · bạn có thể nói tự nhiên</string>
+    <string name="live_mic_muted">Mic đang tắt · bật mic để nói</string>
+    <string name="live_your_session">Buổi tập của bạn</string>
+    <string name="live_activity">Hoạt động</string>
+    <string name="live_effort">Cường độ</string>
+    <string name="live_duration">Thời lượng</string>
+    <string name="live_energy">Mục tiêu năng lượng ước tính</string>
+    <string name="live_equipment">Dụng cụ</string>
+    <string name="live_gender">Giới tính · tùy chọn, lưu trên máy</string>
+    <string name="live_capacity">Mức vận động thoải mái · lưu trên máy</string>
+    <string name="live_limits">Giới hạn vận động · lưu trên máy</string>
+    <string name="live_save">Lưu tùy chọn tập luyện</string>
+    <string name="live_preferences_saved">Đã lưu tùy chọn tập luyện trên thiết bị.</string>
+    <string name="live_fitness_note">Năng lượng tiêu hao thay đổi theo thể trạng và cường độ. Camera không thể xác nhận động tác an toàn.</string>
+    <string name="live_connecting">Đang xác minh App Check và kết nối…</string>
+    <string name="live_connected">Đã kết nối · Bấm Nói câu hỏi</string>
+    <string name="live_recording_question">Mời bạn nói. Nói xong, bấm Gửi câu hỏi.</string>
+    <string name="live_awaiting_reply">Đang chờ Gemini · micrô đã tắt</string>
+    <string name="live_incomplete_reply">Câu trả lời bằng giọng chưa hoàn tất. Xem phụ đề hoặc kết thúc cuộc gọi.</string>
+    <string name="live_connect_timeout">Kết nối quá thời gian. Hãy thử lại.</string>
+    <string name="live_interrupted">Mất kết nối. Bạn có thể tiếp tục khi sẵn sàng. Bước hiện tại đã lưu.</string>
+    <string name="live_mic_needed">Cần quyền micrô trên Android để bật lại âm thanh.</string>
+    <string name="live_audio_input_failed">Không đọc được micrô. Hãy kiểm tra quyền truy cập rồi bật lại micrô.</string>
+    <string name="live_audio_output_failed">Không phát được giọng Gemini. Hãy kiểm tra đầu ra âm thanh rồi bật lại micrô.</string>
+    <string name="live_paused">Đã tạm dừng · micrô và camera đang tắt.</string>
+    <string name="live_reconnecting">Đang kết nối lại Gemini Live…</string>
+    <string name="live_camera_remains_off">Đã kết nối · camera vẫn tắt cho đến khi bạn chia sẻ.</string>
+    <string name="live_resume_timeout">Quá thời gian kết nối lại. Hãy gọi mới từ bước đã lưu.</string>
+    <string name="live_resume_failed">Không thể tiếp nối phiên này. Hãy gọi mới từ bước đã lưu.</string>
+    <string name="live_camera_starting">Đang mở camera…</string>
+    <string name="live_camera_unavailable">Không mở được camera. Bạn vẫn có thể nói chuyện bằng giọng nói.</string>
+    <string name="live_mic_denied">Bạn chưa cấp quyền micrô.</string>
+    <string name="live_camera_denied">Bạn chưa cấp quyền camera.</string>
+    <string name="live_attestation_error">App Check không thể xác minh bản cài này.</string>
+    <string name="live_offline">Gemini Live cần kết nối Internet.</string>
+    <string name="live_not_configured">Bản thử nghiệm đang chờ bật Gemini Live và xác minh App Check. Bạn vẫn có thể theo dõi và lưu các bước.</string>
+    <string name="live_quota">Gemini Live đã đạt hạn mức miễn phí. Hãy thử lại sau.</string>
+    <string name="live_connect_failed">Không thể kết nối Gemini Live. Hãy kiểm tra mạng và cấu hình dự án.</string>
+    <string name="live_ready">Sẵn sàng · camera và micrô đang tắt</string>
+    <string name="live_ended_background">Cuộc gọi kết thúc khi Viera chạy nền. Bước hiện tại đã lưu.</string>
+    <string name="live_external_browser">Không có trình duyệt để mở liên kết</string>
+    <string-array name="live_fitness_steps">
+        <item>Khởi động</item>
+        <item>Bài tập chính</item>
+        <item>Thả lỏng</item>
+    </string-array>
+    <string-array name="live_activities">
+        <item>Đi bộ</item>
+        <item>Yoga</item>
+        <item>Giãn cơ</item>
+        <item>Cardio</item>
+        <item>Sức mạnh</item>
+        <item>Đạp xe</item>
+        <item>Chạy bộ</item>
+    </string-array>
+    <string-array name="live_efforts">
+        <item>Nhẹ</item>
+        <item>Vừa</item>
+        <item>Cao</item>
+    </string-array>
+    <string-array name="live_durations">
+        <item>10 phút</item>
+        <item>20 phút</item>
+        <item>30 phút</item>
+        <item>45 phút</item>
+    </string-array>
+    <string-array name="live_targets">
+        <item>Không đặt mục tiêu</item>
+        <item>50 kcal</item>
+        <item>100 kcal</item>
+        <item>150 kcal</item>
+        <item>200 kcal</item>
+    </string-array>
+    <string-array name="live_equipments">
+        <item>Không cần dụng cụ</item>
+        <item>Thảm</item>
+        <item>Ghế</item>
+        <item>Dây kháng lực</item>
+        <item>Tạ tay</item>
+    </string-array>
+    <string-array name="live_genders">
+        <item>Không muốn tiết lộ</item>
+        <item>Nữ</item>
+        <item>Nam</item>
+        <item>Phi nhị nguyên</item>
+        <item>Danh tính khác</item>
+    </string-array>
+    <string-array name="live_capacities">
+        <item>Bắt đầu nhẹ nhàng</item>
+        <item>Thoải mái khi vận động</item>
+        <item>Có kinh nghiệm</item>
+    </string-array>
+    <string-array name="live_restrictions">
+        <item>Chưa chọn</item>
+        <item>Ngồi trên ghế</item>
+        <item>Hạn chế va đập</item>
+        <item>Tránh tập trên sàn</item>
+    </string-array>
+    <string name="live_session_limit">Phiên demo đã kết thúc sau năm phút. Bước hiện tại đã được lưu.</string>
+</resources>
