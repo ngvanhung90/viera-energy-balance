@@ -101,22 +101,86 @@ export const recipes = [
   }
 ];
 
+// USDA FoodData Central SR Legacy, nutrient 1008 (kcal per 100 g).
+const grain = (name, grams, kcal, aisle = 'Pantry') => ingredient(name, grams, kcal, aisle);
+const produce = (name, grams, kcal) => ingredient(name, grams, kcal, 'Fresh produce');
+const oliveOil = grams => grain('Olive oil', grams, 884);
+const rice = grams => grain('Long-grain rice, cooked', grams, 130);
+const egg = grams => grain('Hard-boiled egg', grams, 155, 'Chilled');
+const tofu = grams => grain('Firm tofu', grams, 144, 'Chilled');
+const lemon = grams => produce('Lemon juice', grams, 22);
+const cucumber = grams => produce('Cucumber', grams, 15);
+
+recipes.push(
+  { id: 'edamame-rice', name: 'Edamame and cucumber rice bowl', cuisine: 'Asian', origin: 'Japanese-inspired',
+    description: 'Warm rice and edamame with crisp cucumber and soy sauce.', minutes: 15, tastes: ['Savory', 'Crunchy'], vegetarian: true,
+    fdc: [169757, 168411, 168409, 174277],
+    ingredients: [rice(160), grain('Shelled edamame, prepared', 140, 121, 'Chilled'), cucumber(80), grain('Soy sauce', 12, 53)],
+    steps: [['Warm the grains and beans', 'Prepare the edamame according to the package. Use freshly cooked rice.'],
+      ['Assemble the bowl', 'Slice cucumber. Add rice and edamame, then finish with soy sauce.']] },
+  { id: 'tofu-quinoa', name: 'Soy-glazed tofu and quinoa', cuisine: 'Asian', origin: 'Asian-inspired',
+    description: 'Pan-seared tofu, quinoa and spinach.', minutes: 20, tastes: ['Savory', 'Cozy'], vegetarian: true,
+    fdc: [172475, 168917, 168462, 171413, 174277],
+    ingredients: [tofu(145), grain('Quinoa, cooked', 150, 120), produce('Spinach', 70, 23), oliveOil(8), grain('Soy sauce', 12, 53)],
+    steps: [['Sear the tofu', 'Pat the tofu dry, cut into cubes and brown in the oil.'],
+      ['Fold in greens', 'Wilt spinach in the pan. Add soy sauce and serve over warm cooked quinoa.']] },
+  { id: 'egg-rice', name: 'Egg, avocado and rice bowl', cuisine: 'Asian', origin: 'Asian-inspired',
+    description: 'Rice, hard-boiled egg, sliced avocado and a splash of soy sauce.', minutes: 18, tastes: ['Savory', 'Cozy'], vegetarian: true,
+    fdc: [169757, 173424, 171705, 174277],
+    ingredients: [rice(150), egg(100), produce('Avocado', 75, 160), grain('Soy sauce', 10, 53)],
+    steps: [['Prepare rice and eggs', 'Start with hot cooked rice. Cook the eggs until both yolk and white are firm.'],
+      ['Assemble', 'Peel and quarter the eggs. Add avocado slices and soy sauce to the bowl.']] },
+  { id: 'lentil-salad', name: 'Warm lentil and tomato salad', cuisine: 'European', origin: 'Mediterranean-inspired',
+    description: 'Lentils, ripe tomato, cucumber and lemon dressing.', minutes: 15, tastes: ['Herby', 'Crunchy'], vegetarian: true,
+    fdc: [172421, 170457, 168409, 171413, 167747],
+    ingredients: [grain('Lentils, cooked and drained', 235, 116), produce('Tomato', 120, 18), cucumber(75), oliveOil(12), lemon(15)],
+    steps: [['Prepare the salad', 'Warm the drained lentils and dice the tomato and cucumber.'],
+      ['Dress and serve', 'Whisk olive oil with lemon juice and toss with the salad.']] },
+  { id: 'tuna-potatoes', name: 'Tuna, potato and spinach plate', cuisine: 'European', origin: 'Mediterranean-inspired',
+    description: 'Tender potatoes, canned tuna, wilted spinach and lemon.', minutes: 25, tastes: ['Savory', 'Cozy'], vegetarian: false,
+    fdc: [171986, 170440, 168462, 171413, 167747],
+    ingredients: [grain('Canned light tuna in water, drained', 120, 116, 'Meat & seafood'), produce('Potatoes, boiled', 250, 86), produce('Spinach', 75, 23), oliveOil(10), lemon(15)],
+    steps: [['Cook the potatoes', 'Peel and cube the potatoes. Boil until fork-tender, then drain.'],
+      ['Assemble', 'Wilt spinach with a splash of water. Serve with potatoes, drained tuna, oil and lemon.']] },
+  { id: 'yogurt-oats', name: 'Warm oats with yogurt', cuisine: 'European', origin: 'European-inspired',
+    description: 'Warm whole oats finished with plain Greek yogurt.', minutes: 10, tastes: ['Cozy'], vegetarian: true,
+    fdc: [173904, 170894],
+    ingredients: [grain('Rolled oats, dry', 80, 379), grain('Plain nonfat Greek yogurt', 180, 59, 'Chilled')],
+    steps: [['Simmer the oats', 'Cook the oats in water according to the package, stirring until soft.'],
+      ['Finish the bowl', 'Take the oats off the heat and spoon the yogurt over them.']] }
+);
+
 export const workouts = [
-  { id: 'stretch', name: 'Unwind & stretch', intensity: 'Gentle', minutes: 10, met: 2.3, style: 'Mobility', steps: [
+  { id: 'stretch', name: 'Unwind & stretch', intensity: 'Gentle', minutes: 10, met: 2.3, style: 'Mobility', equipment: 'Chair', lowImpact: true, steps: [
     'Start with easy shoulder rolls and relaxed breathing.', 'Move through ankle circles and gentle hip hinges with a chair for support.',
     'Ease into light calf and chest stretches. Keep each stretch comfortable.'
   ] },
-  { id: 'walk', name: 'Brisk neighborhood walk', intensity: 'Moderate', minutes: 20, met: 3.8, style: 'Walking', steps: [
+  { id: 'walk', name: 'Brisk neighborhood walk', intensity: 'Moderate', minutes: 20, met: 3.8, style: 'Walking', equipment: 'None', lowImpact: true, steps: [
     'Walk easily for 4 minutes to warm up.', 'Walk briskly for 12 minutes. You should still be able to talk.',
     'Slow down for the final 4 minutes.'
   ] },
-  { id: 'cycle', name: 'Easy cycling loop', intensity: 'Moderate', minutes: 25, met: 4, style: 'Cycling', steps: [
+  { id: 'cycle', name: 'Easy cycling loop', intensity: 'Moderate', minutes: 25, met: 4, style: 'Cycling', equipment: 'Bicycle', lowImpact: true, steps: [
     'Pedal at an easy pace for 5 minutes on a safe route or stationary bike.', 'Ride steadily for 15 minutes at a conversational pace.',
     'Pedal easily for the final 5 minutes.'
   ] },
-  { id: 'jog', name: 'Easy jog for regular runners', intensity: 'Vigorous', minutes: 25, met: 7.5, style: 'Running', steps: [
+  { id: 'jog', name: 'Easy jog for regular runners', intensity: 'Vigorous', minutes: 25, met: 7.5, style: 'Running', equipment: 'None', lowImpact: false, steps: [
     'Warm up with a 5-minute brisk walk.', 'Jog at a familiar pace for 15 minutes, walking whenever you need to.',
     'Cool down with a 5-minute walk.'
+  ] },
+  { id: 'yoga', name: 'Gentle standing yoga', intensity: 'Gentle', minutes: 10, met: 2.3, style: 'Yoga', equipment: 'None', lowImpact: true, steps: [
+    'Stand comfortably with feet apart and breathe normally.',
+    'Slowly raise and lower your arms. Add small side bends within a comfortable range.',
+    'Return to a relaxed stance. Pause if you feel pain or dizziness.'
+  ] },
+  { id: 'strength', name: 'Chair-supported strength', intensity: 'Moderate', minutes: 15, met: 3, style: 'Strength', equipment: 'Chair', lowImpact: true, steps: [
+    'Place a stable chair against a wall and warm up with easy arm and ankle movements.',
+    'Alternate comfortable sit-to-stands and wall push-ups. Rest when you need to.',
+    'Finish with an easy walk or seated rest.'
+  ] },
+  { id: 'cardio', name: 'Low-impact dance cardio', intensity: 'Moderate', minutes: 15, met: 4.8, style: 'Cardio', equipment: 'None', lowImpact: true, steps: [
+    'Clear a small space and warm up with easy marching.',
+    'Alternate side steps and gentle arm swings at a pace that lets you talk. Keep one foot on the floor.',
+    'Slow down and finish with easy steps.'
   ] }
 ];
 

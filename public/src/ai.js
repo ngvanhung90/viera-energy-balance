@@ -3,7 +3,7 @@ import {
   getAI, getGenerativeModel, GoogleAIBackend, InferenceMode, InferenceSource
 } from '../vendor/firebase-ai.js';
 import { getToken, initializeAppCheck, ReCaptchaEnterpriseProvider } from '../vendor/firebase-app-check.js';
-import { makePlanPrompt, validateChoices } from './planner.js';
+import { makePlanPrompt, validateChoices, validateNanoChoices } from './planner.js';
 
 const modelName = 'gemini-3.5-flash-lite';
 const deviceOptions = {
@@ -26,7 +26,7 @@ let nativeStatus;
 let nativeRequestId = 0;
 const isAndroidApp = typeof navigator !== 'undefined' && navigator.userAgent.includes('VieraAndroid/1');
 
-function nativeRequest(operation, data = {}) {
+export function nativeRequest(operation, data = {}) {
   const bridge = globalThis.VieraNative;
   if (!bridge) return Promise.reject(new Error('device-unavailable'));
   const id = String(++nativeRequestId);
@@ -34,7 +34,7 @@ function nativeRequest(operation, data = {}) {
     const timer = setTimeout(() => {
       bridge.removeEventListener('message', receive);
       reject(new Error('deadline'));
-    }, operation === 'status' ? 4000 : 21500);
+    }, operation === 'status' || operation.startsWith('completed-history-') ? 4000 : 21500);
     function receive(event) {
       const response = JSON.parse(event.data);
       if (response.id !== id) return;
@@ -71,6 +71,21 @@ export function cloudConfigured() {
 
 export function connectionState() {
   return isAndroidApp ? nativeStatus?.online ?? null : navigator.onLine;
+}
+
+export function liveAvailable() {
+  return isAndroidApp && nativeStatus?.liveAvailable === true;
+}
+
+export function nanoDownloadStatus() {
+  return isAndroidApp ? nativeStatus?.modelDownload : undefined;
+}
+
+export function startNanoDownload(confirmed) {
+  if (!isAndroidApp || nativeStatus?.availability !== 'downloadable' || confirmed !== true) {
+    return Promise.reject(new Error('device-unavailable'));
+  }
+  return nativeRequest('download-nano', { confirmed });
 }
 
 export async function checkDevice() {
@@ -181,7 +196,9 @@ export function failureCode(error) {
 
 function readResult(result, expectedSource, options) {
   if (result.response.inferenceSource !== expectedSource) throw new Error('unexpected-source');
-  return validateChoices(result.response.text(), options);
+  return expectedSource === InferenceSource.ON_DEVICE
+    ? validateNanoChoices(result.response.text(), options)
+    : validateChoices(result.response.text(), options);
 }
 
 export async function generatePlan({ mode, options, profile, cloudOptions, cloudProfile, availability, allowCloud }) {

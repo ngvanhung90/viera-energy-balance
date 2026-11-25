@@ -2,7 +2,8 @@ import { recipes, workouts } from './catalog.js';
 
 export const preferences = {
   cuisine: 'Any', taste: 'Any', intensity: 'Moderate', movement: 'Any',
-  goal: 'Maintain', change: 0, favorites: [], favoriteWorkouts: []
+  goal: 'Maintain', change: 0, favorites: [], favoriteWorkouts: [],
+  activityMinutes: 30, equipment: 'Any', lowImpact: false, bodyWeight: null, activityTarget: null
 };
 
 export const scenarios = {
@@ -18,22 +19,48 @@ export function calories(recipe, servings = 1) {
 }
 
 export function activityCalories(workout, weight = 70) {
-  return Math.round(workout.met * 3.5 * weight / 200 * workout.minutes / 5) * 5;
+  const mass = Number.isFinite(weight) && weight >= 30 && weight <= 300 ? weight : 70;
+  return Math.round(workout.met * 3.5 * mass / 200 * workout.minutes / 5) * 5;
 }
 
-export function mealMatches({ target, cuisine, search = '', favoritesOnly = false }, profile) {
+export function activityOptions(profile, timeLimit = Infinity) {
+  const intensities = ['Gentle', 'Moderate', 'Vigorous'];
+  const maximum = intensities.indexOf(profile.intensity);
+  const duration = Math.min(timeLimit, profile.activityMinutes ?? Infinity);
+  return workouts.filter(workout => workout.minutes <= duration
+    && intensities.indexOf(workout.intensity) <= maximum
+    && (!profile.lowImpact || workout.lowImpact)
+    && (!profile.equipment || profile.equipment === 'Any' || workout.equipment === 'None' || workout.equipment === profile.equipment))
+    .sort((first, second) => {
+      const score = workout => (profile.favoriteWorkouts.includes(workout.id) ? 8 : 0)
+        + (workout.style === profile.movement ? 4 : 0)
+        + (workout.intensity === profile.intensity ? 2 : 0)
+        + (profile.completedWorkouts?.includes(workout.id) ? 1 : 0)
+        - (profile.activityTarget ? Math.abs(activityCalories(workout, profile.bodyWeight) - profile.activityTarget) / 10 : 0);
+      return score(second) - score(first);
+    });
+}
+
+export function mealPreferenceScore(recipe, profile) {
+  return (profile.favorites.includes(recipe.id) ? 30 : 0)
+    + (profile.taste !== 'Any' && recipe.tastes.includes(profile.taste) ? 18 : 0)
+    + (recipe.cuisine === profile.cuisine ? 12 : 0)
+    + (profile.completedMeals?.includes(recipe.id) ? 6 : 0);
+}
+
+export function mealMatches({ target, cuisine, search = '', favoritesOnly = false, vegetarian = false, mealMinutes = Infinity }, profile, display = value => value) {
   const words = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
   return recipes.filter(recipe => {
-    const searchable = [recipe.name, recipe.origin, recipe.cuisine, ...recipe.ingredients.map(item => item.name)]
+    const localized = display(recipe);
+    const searchable = [recipe.name, recipe.origin, recipe.cuisine, ...recipe.ingredients.map(item => item.name),
+      localized.name, ...localized.ingredients.map(item => item.name)]
       .join(' ').toLowerCase();
     return (cuisine === 'Any' || recipe.cuisine === cuisine)
       && (!favoritesOnly || profile.favorites.includes(recipe.id))
+      && (!vegetarian || recipe.vegetarian) && recipe.minutes <= mealMinutes
       && words.every(word => searchable.includes(word));
   }).sort((first, second) => {
-    const score = recipe => Math.abs(calories(recipe) - target)
-      - (profile.favorites.includes(recipe.id) ? 30 : 0)
-      - (profile.taste !== 'Any' && recipe.tastes.includes(profile.taste) ? 18 : 0)
-      - (recipe.cuisine === profile.cuisine ? 12 : 0);
+    const score = recipe => Math.abs(calories(recipe) - target) - mealPreferenceScore(recipe, profile);
     return score(first) - score(second);
   });
 }
@@ -44,16 +71,7 @@ export function planOptions({ target, cuisine, vegetarian, scenario }, profile) 
     recipe.minutes <= limits.mealMinutes
       && (!limits.noCook || recipe.id === 'rolls')
       && (!vegetarian || recipe.vegetarian));
-  const intensities = ['Gentle', 'Moderate', 'Vigorous'];
-  const maximum = intensities.indexOf(profile.intensity);
-  const movementOptions = workouts.filter(workout =>
-    workout.minutes <= limits.activityMinutes && intensities.indexOf(workout.intensity) <= maximum
-  ).sort((first, second) => {
-    const score = workout => (profile.favoriteWorkouts.includes(workout.id) ? 3 : 0)
-      + (workout.style === profile.movement ? 2 : 0)
-      + (workout.intensity === profile.intensity ? 1 : 0);
-    return score(second) - score(first);
-  });
+  const movementOptions = activityOptions(profile, limits.activityMinutes);
   return { mealOptions, movementOptions, target, scenario, limits, vegetarian };
 }
 
@@ -72,6 +90,25 @@ export function validateChoices(response, options) {
   const validFocus = ['time', 'energy', 'taste'].includes(focus);
   if (!meal || !workout || !validFocus) throw new Error('invalid-selection');
   return { meal, workout, focus };
+}
+
+export function validateNanoChoices(response, options) {
+  if (typeof response !== 'string' || response.length > 2048) throw new Error('invalid-selection');
+  const text = response.trim();
+  const fence = /^```(?:json)?[\t ]*\r?\n([\s\S]*?)\r?\n```$/i.exec(text);
+  const json = fence ? fence[1] : text;
+  let selection;
+  try {
+    selection = JSON.parse(json);
+  } catch {
+    throw new Error('invalid-selection');
+  }
+  if (!selection || Array.isArray(selection) || typeof selection !== 'object' ||
+      Object.keys(selection).length !== 3 ||
+      !['meal', 'workout', 'focus'].every(key => Object.hasOwn(selection, key))) {
+    throw new Error('invalid-selection');
+  }
+  return validateChoices(json, options);
 }
 
 export function makePlanPrompt(options, profile) {
