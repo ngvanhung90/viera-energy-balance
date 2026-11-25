@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="live_fitness">Coach sportif en direct</string>
+    <string name="live_cooking">Coach cuisine en direct</string>
+    <string name="live_model">Gemini Live · Cloud · %1$s</string>
+    <string name="live_previous_step">Étape précédente</string>
+    <string name="live_next_step">Étape suivante</string>
+    <string name="live_current_step">Étape %1$d/%2$d · %3$s</string>
+    <string name="live_prepare_ingredients">Préparer les ingrédients</string>
+    <string name="live_camera_off">Caméra coupée</string>
+    <string name="live_camera_share">Partager la caméra</string>
+    <string name="live_camera_turn_off">Couper la caméra</string>
+    <string name="live_send_question">Envoyer la question</string>
+    <string name="live_ask_question">Poser une question</string>
+    <string name="live_pause">Mettre en pause</string>
+    <string name="live_resume">Reprendre l’appel</string>
+    <string name="live_end">Terminer / fermer</string>
+    <string name="live_consent">J’accepte de partager le son de démonstration et les images de la caméra que j’active avec Google Gemini Free tier pour cet appel. Google peut utiliser ces contenus pour améliorer ses services. Évite les visages et les données de santé ou privées.</string>
+    <string name="live_start">Démarrer l’appel</string>
+    <string name="live_privacy">Viera envoie le son quand le micro est activé et des images quand tu partages la caméra. En mode manuel, Viera envoie le son et les images pendant une question. Viera envoie aussi la recette ou l’exercice choisi et ne conserve ni enregistrement ni transcription.</string>
+    <string name="live_manual_mode">Tours de parole manuels (mode de secours)</string>
+    <string name="live_mic_on">Activer le micro</string>
+    <string name="live_mic_off">Couper le micro</string>
+    <string name="live_listening">À l’écoute · parle naturellement</string>
+    <string name="live_mic_muted">Micro coupé · active-le pour parler</string>
+    <string name="live_your_session">Ta séance</string>
+    <string name="live_activity">Activité</string>
+    <string name="live_effort">Intensité</string>
+    <string name="live_duration">Durée</string>
+    <string name="live_energy">Objectif énergétique estimé</string>
+    <string name="live_equipment">Matériel</string>
+    <string name="live_gender">Genre · facultatif, conservé sur l’appareil</string>
+    <string name="live_capacity">Niveau de confort · sur l’appareil</string>
+    <string name="live_limits">Limites de mouvement · sur l’appareil</string>
+    <string name="live_save">Enregistrer les préférences sportives</string>
+    <string name="live_preferences_saved">Préférences sportives enregistrées sur cet appareil.</string>
+    <string name="live_fitness_note">La dépense d’énergie varie selon la personne et l’effort. La caméra ne peut pas vérifier la sécurité d’un mouvement.</string>
+    <string name="live_connecting">Vérification App Check et connexion…</string>
+    <string name="live_connected">Connecté · Touchez Poser une question</string>
+    <string name="live_recording_question">Parlez, puis touchez Envoyer la question.</string>
+    <string name="live_awaiting_reply">En attente de Gemini · micro coupé</string>
+    <string name="live_incomplete_reply">La réponse vocale est incomplète. Consultez les sous-titres ou terminez l’appel.</string>
+    <string name="live_connect_timeout">La connexion a expiré. Réessaie.</string>
+    <string name="live_interrupted">Connexion interrompue. Reprends quand tu veux. Ton étape est enregistrée.</string>
+    <string name="live_mic_needed">Android a besoin de l’autorisation du micro pour reprendre l’audio.</string>
+    <string name="live_audio_input_failed">Impossible de lire le micro. Vérifiez son accès, puis réactivez-le.</string>
+    <string name="live_audio_output_failed">Impossible de lire la voix de Gemini. Vérifiez la sortie audio, puis réactivez le micro.</string>
+    <string name="live_paused">En pause · micro et caméra coupés.</string>
+    <string name="live_reconnecting">Reconnexion à Gemini Live…</string>
+    <string name="live_camera_remains_off">Connecté · la caméra reste coupée avant le partage.</string>
+    <string name="live_resume_timeout">La reprise a expiré. Lance un nouvel appel depuis l’étape enregistrée.</string>
+    <string name="live_resume_failed">Cette session n’a pas pu reprendre. Lance un nouvel appel depuis l’étape enregistrée.</string>
+    <string name="live_camera_starting">Démarrage de la caméra…</string>
+    <string name="live_camera_unavailable">Caméra indisponible. Tu peux continuer à la voix.</string>
+    <string name="live_mic_denied">L’autorisation du micro a été refusée.</string>
+    <string name="live_camera_denied">L’autorisation de la caméra a été refusée.</string>
+    <string name="live_attestation_error">App Check n’a pas pu vérifier cette installation.</string>
+    <string name="live_offline">Gemini Live a besoin d’une connexion Internet.</string>
+    <string name="live_not_configured">Cette version de test attend l’activation de Gemini Live et App Check. Tu peux consulter et enregistrer tes étapes.</string>
+    <string name="live_quota">Gemini Live a atteint son quota gratuit. Réessaie plus tard.</string>
+    <string name="live_connect_failed">Gemini Live n’a pas pu se connecter. Vérifie le réseau et la configuration du projet.</string>
+    <string name="live_ready">Prêt · caméra et micro coupés</string>
+    <string name="live_ended_background">L’appel s’est terminé quand Viera est passé en arrière-plan. Ton étape est enregistrée.</string>
+    <string name="live_external_browser">Aucun navigateur disponible</string>
+    <string-array name="live_fitness_steps">
+        <item>Échauffement</item>
+        <item>Séance principale</item>
+        <item>Retour au calme</item>
+    </string-array>
+    <string-array name="live_activities">
+        <item>Marche</item>
+        <item>Yoga</item>
+        <item>Étirements</item>
+        <item>Cardio</item>
+        <item>Renforcement</item>
+        <item>Vélo</item>
+        <item>Course à pied</item>
+    </string-array>
+    <string-array name="live_efforts">
+        <item>Légère</item>
+        <item>Modérée</item>
+        <item>Intense</item>
+    </string-array>
+    <string-array name="live_durations">
+        <item>10 minutes</item>
+        <item>20 minutes</item>
+        <item>30 minutes</item>
+        <item>45 minutes</item>
+    </string-array>
+    <string-array name="live_targets">
+        <item>Sans objectif</item>
+        <item>50 kcal</item>
+        <item>100 kcal</item>
+        <item>150 kcal</item>
+        <item>200 kcal</item>
+    </string-array>
+    <string-array name="live_equipments">
+        <item>Sans matériel</item>
+        <item>Tapis</item>
+        <item>Chaise</item>
+        <item>Élastique</item>
+        <item>Haltères</item>
+    </string-array>
+    <string-array name="live_genders">
+        <item>Je préfère ne pas répondre</item>
+        <item>Femme</item>
+        <item>Homme</item>
+        <item>Non binaire</item>
+        <item>Autre identité</item>
+    </string-array>
+    <string-array name="live_capacities">
+        <item>Commencer doucement</item>
+        <item>À l’aise en mouvement</item>
+        <item>Avec de l’expérience</item>
+    </string-array>
+    <string-array name="live_restrictions">
+        <item>Aucune sélection</item>
+        <item>Rester assis</item>
+        <item>Éviter les impacts</item>
+        <item>Éviter les exercices au sol</item>
+    </string-array>
+    <string name="live_session_limit">La session de démonstration a pris fin après cinq minutes. L’étape actuelle a été enregistrée.</string>
+</resources>
