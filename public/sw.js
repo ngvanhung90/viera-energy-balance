@@ -1,10 +1,14 @@
-const name = 'viera-energy-shell-v3';
+const name = 'viera-energy-shell-v18';
 const shell = [
   './', './index.html', './app.css', './manifest.webmanifest', './assets/icon.png', './assets/icon-large.png',
   './src/main.js', './src/planner.js', './src/catalog.js', './src/storage.js', './src/ai.js',
+  './src/locales.js', './src/catalog-locales.js', './src/nearby.js', './src/nearby-view.js', './src/nearby-discovery.js',
   './vendor/firebase-ai.js', './vendor/firebase-app.js', './vendor/firebase-app-check.js',
   './assets/lemongrass.webp', './assets/pasta.webp', './assets/soba.webp',
-  './assets/salmon.webp', './assets/rolls.webp', './assets/chickpea.webp'
+  './assets/salmon.webp', './assets/rolls.webp', './assets/chickpea.webp', './assets/living-movement.webp',
+  './assets/edamame-rice.webp', './assets/tofu-quinoa.webp', './assets/egg-rice.webp',
+  './assets/lentil-salad.webp', './assets/tuna-potatoes.webp', './assets/yogurt-oats.webp',
+  './assets/living-movement-home.webp'
 ];
 const config = new URL('./firebase-config.json', self.location).href;
 
