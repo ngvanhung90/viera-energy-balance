@@ -7,9 +7,13 @@ const root = new URL('./public/', import.meta.url);
 const files = new Set([
   'index.html', 'app.css', 'sw.js', 'manifest.webmanifest', 'firebase-config.json',
   'src/main.js', 'src/catalog.js', 'src/planner.js', 'src/storage.js', 'src/ai.js',
+  'src/locales.js', 'src/catalog-locales.js',
+  'src/nearby.js', 'src/nearby-view.js', 'src/nearby-discovery.js',
   'vendor/firebase-app.js', 'vendor/firebase-app-check.js', 'vendor/firebase-ai.js',
   'assets/icon.png', 'assets/icon-large.png', 'assets/lemongrass.webp', 'assets/pasta.webp',
-  'assets/soba.webp', 'assets/salmon.webp', 'assets/rolls.webp', 'assets/chickpea.webp'
+  'assets/soba.webp', 'assets/salmon.webp', 'assets/rolls.webp', 'assets/chickpea.webp', 'assets/living-movement.webp',
+  'assets/edamame-rice.webp', 'assets/tofu-quinoa.webp', 'assets/egg-rice.webp', 'assets/lentil-salad.webp',
+  'assets/tuna-potatoes.webp', 'assets/yogurt-oats.webp', 'assets/living-movement-home.webp'
 ]);
 const types = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -36,4 +40,4 @@ const server = createServer(async (request, response) => {
     response.writeHead(404).end();
   }
 });
-server.listen(port, '127.0.0.1', () => console.log(`Viera Energy Balance at http://127.0.0.1:${port}`));
+server.listen(port, '127.0.0.1', () => console.log(`Viera Energy Balance at http://127.0.0.1:${server.address().port}`));

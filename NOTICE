@@ -1,10 +1,19 @@
 Viera Energy Balance
 
 Food illustrations in public/assets are generated specifically for this project.
-The Viera app icons in that folder accompany the project.
+The movement illustrations in public/assets/living-movement.webp were generated
+with OpenAI ImageGen for the Viera Living UI candidate. They illustrate activities
+and are not exercise technique instructions.
+The six meal images for the USDA-indexed recipes and living-movement-home.webp
+were generated for Viera with OpenAI ImageGen. They are illustrations, not
+measurements of portions, evidence of menus, or exercise technique instruction.
+Viera's app icons (icon.png and icon-large.png) are present in the first
+Viera Energy Balance source commit, 4f7627e. No separate upstream design
+credit or original art file was identified in this audit.
 Third-party technique videos are linked or embedded from their original YouTube
 publishers and are not redistributed here. The repository license does not cover
-the linked videos, the linked maps, or the external nutrition reference sites.
+the linked videos, the linked maps, the OpenStreetMap-derived coordinates
+covered by ODbL, or the external nutrition reference sites.
 
 public/vendor contains the Firebase JavaScript SDK 13.4.0 from the Google
 Firebase CDN. The full upstream license, including third-party notices, is
@@ -13,3 +22,47 @@ bundles mark the relative import change made to support offline loading.
 
 Firebase source and license: https://github.com/firebase/firebase-js-sdk
 Exact upstream license: https://github.com/firebase/firebase-js-sdk/blob/firebase%4013.4.0/LICENSE
+
+The nearby feature uses Photon for OpenStreetMap lookups. OpenStreetMap data
+is © OpenStreetMap contributors, available under the Open Database License.
+Attribution and terms: https://www.openstreetmap.org/copyright
+
+OpenStreetMap coordinates
+The bundled Paris examples Don Giovanni, Amalfi and Amalfitana use locations
+from OpenStreetMap nodes 8016720377, 11364651926 and 2026702530. Their
+OpenStreetMap-derived data is available under ODbL 1.0.
+https://opendatacommons.org/licenses/odbl/1-0/
+The upstream Photon demo endpoint may throttle use and has no availability
+guarantee. https://github.com/komoot/photon#demo-server
+
+Ho Chi Minh City place references
+See the README citation table for restaurant contacts and public location
+references from Aroundus and PinGuide. The restaurant directory records a
+small set of factual lookup entries and source links. No menus, map images,
+map tiles or provider datasets are included. The separate Ben Thanh location
+anchor is sourced from Wikidata Q3232879.
+
+Android dependencies
+The Android app declares Firebase AI Logic 18.2.0, Firebase AI Logic On-Device
+16.0.0-beta08, Firebase App Check Play Integrity 20.1.0 and Play Integrity 1.4.0.
+Firebase Android SDK source and licenses: https://github.com/firebase/firebase-android-sdk
+
+Play Integrity, Play Core Common, Play services and ML Kit components are
+obtained from their upstream repositories. Their respective terms and notices
+remain applicable. The Viera license does not relicense those libraries.
+Resolved components include Play Core Common 2.0.4, Play services Base and
+Basement 18.9.0, Play services Tasks 18.4.0, ML Kit Common 18.11.0,
+GenAI Common and GenAI Prompt 1.0.0-beta5, and GenAI Schema 1.0.0-alpha2.
+Distribute the signed APK together with ANDROID_THIRD_PARTY_NOTICES.zip.
+It carries notices from the resolved binaries and the supplemental upstream BSD
+texts for repackaged Protobuf and the JSR-305 reference implementation.
+Android SDK terms: https://developer.android.com/studio/terms
+Play Integrity terms: https://developer.android.com/google/play/integrity/overview#tos
+Play Core SDK terms: https://developer.android.com/guide/playcore/license
+ML Kit terms: https://developers.google.com/ml-kit/terms
+Protobuf license: https://github.com/protocolbuffers/protobuf/blob/v3.25.5/LICENSE
+JSR-305 BSD terms: https://chromium.googlesource.com/external/jsr-305/+/fdfdc61084f5084c0ea2fd344c3840c4bda3e893/ri/LICENSE
+
+Viera marks
+Apache License 2.0 Section 6 governs permitted references to the Viera
+name and marks. Existing copyright and attribution notices remain in place.
